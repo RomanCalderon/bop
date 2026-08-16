@@ -51,8 +51,8 @@ export function BrowseApp({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col md:h-dvh md:flex-row">
-      <header className="flex items-center justify-between gap-2 px-4 py-3 md:hidden">
+    <div className="flex min-h-dvh flex-col md:h-dvh">
+      <header className="flex items-center justify-between gap-2 px-4 py-3">
         <CitySwitcher
           cities={current.cities}
           city={current.city}
@@ -80,58 +80,49 @@ export function BrowseApp({
           <button type="button" aria-label="Add place" onClick={() => onAdd?.()}>
             +
           </button>
+          <a href="/settings">Settings</a>
         </div>
       </header>
 
-      <div className="h-[40vh] md:order-2 md:h-auto md:flex-1">
-        <MapView
-          city={current.city}
-          places={filtered}
-          markerIds={filtered.map((p) => p.id)}
-          onSelect={(id) => {
-            const place = filtered.find((p) => p.id === id);
-            if (place) onOpenPlace?.(place);
-          }}
-        />
-      </div>
-
-      <section className="flex min-h-0 flex-1 flex-col md:order-1 md:w-[28rem] md:border-r md:border-stone-300">
-        <div className="hidden items-center justify-between px-4 py-3 md:flex">
-          <div aria-hidden={current.cities.length === 0 || undefined}>
-            <CitySwitcher
-              cities={current.cities}
-              city={current.city}
-              onChange={handleCityChange}
-            />
-          </div>
-          <button type="button" aria-label="Add place" onClick={() => onAdd?.()}>
-            +
-          </button>
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div className="h-[40vh] md:order-2 md:h-auto md:flex-1">
+          <MapView
+            city={current.city}
+            places={filtered}
+            markerIds={filtered.map((p) => p.id)}
+            onSelect={(id) => {
+              const place = filtered.find((p) => p.id === id);
+              if (place) onOpenPlace?.(place);
+            }}
+          />
         </div>
-        <FilterBar
-          query={query}
-          onQuery={setQuery}
-          types={current.types}
-          type={type}
-          onType={setType}
-          areas={current.areas}
-          areaId={areaId}
-          onArea={setAreaId}
-          extraTags={current.extraTags}
-          extraTag={extraTag}
-          onExtraTag={setExtraTag}
-        />
-        <PlaceList
-          places={filtered}
-          origin={origin}
-          empty={
-            current.city === null
-              ? "Add a place to start a city."
-              : "Nothing matches — clear filters."
-          }
-          onOpen={(place) => onOpenPlace?.(place)}
-        />
-      </section>
+
+        <section className="flex min-h-0 flex-1 flex-col md:order-1 md:w-[28rem] md:border-r md:border-stone-300">
+          <FilterBar
+            query={query}
+            onQuery={setQuery}
+            types={current.types}
+            type={type}
+            onType={setType}
+            areas={current.areas}
+            areaId={areaId}
+            onArea={setAreaId}
+            extraTags={current.extraTags}
+            extraTag={extraTag}
+            onExtraTag={setExtraTag}
+          />
+          <PlaceList
+            places={filtered}
+            origin={origin}
+            empty={
+              current.city === null
+                ? "Add a place to start a city."
+                : "Nothing matches — clear filters."
+            }
+            onOpen={(place) => onOpenPlace?.(place)}
+          />
+        </section>
+      </div>
     </div>
   );
 }
