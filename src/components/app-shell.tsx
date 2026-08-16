@@ -97,13 +97,26 @@ export function AppShell(props: AppShellActions) {
       ) : null}
       {selected ? (
         <PlaceDetail
+          key={selected.id}
           place={selected}
           cities={payload.cities}
           areas={payload.areas}
           updatePlace={props.updatePlace}
           deletePlace={props.deletePlace}
           movePlace={props.movePlace}
-          createArea={props.createArea}
+          createArea={async (cityId, name) => {
+            const result = await props.createArea(cityId, name);
+            if (result.ok) {
+              setPayload((prev) => {
+                const exists = prev.areas.some((a) => a.id === result.area.id);
+                const areas = exists
+                  ? prev.areas.map((a) => (a.id === result.area.id ? result.area : a))
+                  : [...prev.areas, result.area];
+                return { ...prev, areas };
+              });
+            }
+            return result;
+          }}
           onClose={() => setSelected(null)}
           onChanged={(place) => {
             upsertPlace(place);
