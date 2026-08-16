@@ -6,8 +6,8 @@ import { Component, useState, type ReactNode } from "react";
 import {
   APILoadingStatus,
   APIProvider,
-  AdvancedMarker,
   Map,
+  Marker,
   useApiLoadingStatus,
 } from "@vis.gl/react-google-maps";
 import { bopMapStyle } from "@/lib/map-style";
@@ -80,7 +80,7 @@ function MapCanvas({
       className="h-full w-full"
     >
       {visible.map((place) => (
-        <AdvancedMarker
+        <Marker
           key={place.id}
           position={{ lat: place.lat, lng: place.lng }}
           onClick={() => onSelect(place.id)}
@@ -109,7 +109,6 @@ export function MapView({
     <MapErrorBoundary>
       <APIProvider
         apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""}
-        libraries={["marker"]}
         onError={() => setLoadFailed(true)}
       >
         <MapCanvas

@@ -1,3 +1,5 @@
+import "server-only";
+
 import type {
   AutocompleteSuggestion,
   PlaceDetails,
@@ -25,16 +27,16 @@ async function googleFetch(
   url: string,
   init: RequestInit,
   retries = 1,
-): Promise<Response | null> {
+): Promise<Response> {
   try {
     const res = await fetch(url, init);
     if (res.ok) return res;
-    if (retries > 0) return googleFetch(url, init, retries - 1);
-    return null;
   } catch {
     if (retries > 0) return googleFetch(url, init, retries - 1);
-    return null;
+    throw new Error("places_api_error");
   }
+  if (retries > 0) return googleFetch(url, init, retries - 1);
+  throw new Error("places_api_error");
 }
 
 export function createPlacesClient(apiKey: string): PlacesPort {
@@ -54,7 +56,6 @@ export function createPlacesClient(apiKey: string): PlacesPort {
           body: JSON.stringify({ input }),
         },
       );
-      if (!res) return [];
       const json = (await res.json()) as {
         suggestions?: {
           placePrediction?: {
@@ -85,7 +86,6 @@ export function createPlacesClient(apiKey: string): PlacesPort {
           body: JSON.stringify({ textQuery: query }),
         },
       );
-      if (!res) return [];
       const json = (await res.json()) as {
         places?: {
           id?: string;
@@ -103,11 +103,15 @@ export function createPlacesClient(apiKey: string): PlacesPort {
     },
 
     async getDetails(placeId: string): Promise<PlaceDetails | null> {
-      const res = await googleFetch(
-        `https://places.googleapis.com/v1/places/${placeId}`,
-        { headers: headers(DETAILS_MASK) },
-      );
-      if (!res) return null;
+      let res: Response;
+      try {
+        res = await googleFetch(
+          `https://places.googleapis.com/v1/places/${placeId}`,
+          { headers: headers(DETAILS_MASK) },
+        );
+      } catch {
+        return null;
+      }
       const json = (await res.json()) as {
         id?: string;
         displayName?: { text?: string };
@@ -149,11 +153,15 @@ export function createPlacesClient(apiKey: string): PlacesPort {
     },
 
     async fetchPhoto(photoName: string) {
-      const res = await googleFetch(
-        `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&skipHttpRedirect=true`,
-        { headers: { "X-Goog-Api-Key": apiKey } },
-      );
-      if (!res) return null;
+      let res: Response;
+      try {
+        res = await googleFetch(
+          `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&skipHttpRedirect=true`,
+          { headers: { "X-Goog-Api-Key": apiKey } },
+        );
+      } catch {
+        return null;
+      }
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
         const json = (await res.json()) as { photoUri?: string };

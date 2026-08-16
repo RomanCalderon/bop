@@ -138,6 +138,11 @@ export async function setLastCity(cityId: string) {
 }
 
 export async function changeCity(cityId: string) {
-  await setLastCity(cityId);
-  return getBrowsePayload(cityId);
+  try {
+    const session = await requireAllowedSession();
+    await setLastCityWithDeps(db, session.id, cityId);
+    return await getBrowsePayloadWithDeps(db, session.id, cityId);
+  } catch {
+    return { ok: false as const, message: "Couldn't save, try again." };
+  }
 }

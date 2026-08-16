@@ -64,6 +64,31 @@ describe("createPlacesClient", () => {
     ]);
   });
 
+  it("throws after retry when Text Search keeps failing", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("nope", { status: 500 }))
+      .mockResolvedValueOnce(new Response("nope", { status: 500 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(createPlacesClient("k").textSearch("Books")).rejects.toThrow(
+      "places_api_error",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns an empty list when Autocomplete has zero hits", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ suggestions: [] }), { status: 200 }),
+      ),
+    );
+    await expect(createPlacesClient("k").autocomplete("zzz")).resolves.toEqual(
+      [],
+    );
+  });
+
   it("maps Place Details including photo resource name", async () => {
     vi.stubGlobal(
       "fetch",

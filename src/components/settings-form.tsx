@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { normalizeEmail } from "@/lib/allowlist";
 
 export function SettingsForm({
   envEmails,
@@ -22,6 +23,7 @@ export function SettingsForm({
   const [names, setNames] = useState(
     Object.fromEntries(cities.map((c) => [c.id, c.name])),
   );
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -38,7 +40,12 @@ export function SettingsForm({
                 type="button"
                 onClick={async () => {
                   const res = await removeAllowedEmail(e);
-                  if (res.ok) setTable((prev) => prev.filter((x) => x !== e));
+                  if (res.ok) {
+                    setError(null);
+                    setTable((prev) => prev.filter((x) => x !== e));
+                  } else {
+                    setError(res.message);
+                  }
                 }}
               >
                 Remove {e}
@@ -59,12 +66,17 @@ export function SettingsForm({
           className="mt-2 rounded-full bg-[var(--ink)] px-4 py-2 text-[var(--paper)]"
           onClick={async () => {
             const res = await inviteEmail(email);
-            if (res.ok) {
-              setTable((prev) =>
-                prev.includes(email.toLowerCase()) ? prev : [...prev, email.toLowerCase()],
-              );
-              setEmail("");
+            if (!res.ok) {
+              setError(res.message);
+              return;
             }
+            setError(null);
+            const normalized = normalizeEmail(email);
+            const envSet = new Set(envEmails.map((e) => normalizeEmail(e)));
+            if (!envSet.has(normalized)) {
+              setTable((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]));
+            }
+            setEmail("");
           }}
         >
           Invite
@@ -80,12 +92,21 @@ export function SettingsForm({
               onChange={(e) =>
                 setNames((prev) => ({ ...prev, [c.id]: e.target.value }))
               }
-              onBlur={() => void renameCity(c.id, names[c.id] ?? c.name)}
+              onBlur={async () => {
+                const res = await renameCity(c.id, names[c.id] ?? c.name);
+                if (!res.ok) setError(res.message);
+                else setError(null);
+              }}
               className="mt-1 w-full rounded-lg border p-2"
             />
           </label>
         ))}
       </section>
+      {error ? (
+        <p role="alert" className="text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

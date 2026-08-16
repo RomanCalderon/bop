@@ -111,6 +111,23 @@ describe("seedCollection", () => {
     await client.close();
   });
 
+  it("records api_error when Text Search throws after a network failure", async () => {
+    const { db, client } = await createTestDb();
+    const report = await seedCollection({
+      db,
+      places: fakePlaces({
+        textSearch: async () => {
+          throw new Error("places_api_error");
+        },
+        getDetails: async () => null,
+      }),
+      csvText: `Note,URL,Tags,Comments\n"",https://www.google.com/maps/place/Ghost+Pin/data=!4m2!3m1!1s0xeee:0x555,,\n`,
+    });
+    expect(report.failed.map((f) => f.reason)).toEqual(["api_error"]);
+    expect(await db.select().from(places)).toHaveLength(0);
+    await client.close();
+  });
+
   it("skips Text Search when feature-id/CID is already stored", async () => {
     const { db, client } = await createTestDb();
     await insertPlace(db, {

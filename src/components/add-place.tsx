@@ -25,7 +25,7 @@ export function AddPlace({
     | { ok: false; message: string }
   >;
   onClose: () => void;
-  onSaved: (place: BrowsePlace) => void;
+  onSaved: (place: BrowsePlace) => void | Promise<void>;
 }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<AutocompleteSuggestion[]>([]);
@@ -67,7 +67,7 @@ export function AddPlace({
                 onClick={async () => {
                   const res = await addPlace(hit.placeId, currentCityId);
                   if (!res.ok) setError(res.message);
-                  else onSaved(res.place);
+                  else await onSaved(res.place);
                 }}
               >
                 {hit.primaryText}
