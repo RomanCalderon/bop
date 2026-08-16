@@ -8,7 +8,9 @@ export function createDb(url: string) {
   return drizzle(neon(url), { schema });
 }
 
-export const db = createDb(process.env.DATABASE_URL ?? "postgres://unused");
+export const db = createDb(
+  process.env.DATABASE_URL ?? "postgresql://user:password@localhost/dbname",
+);
 
 export type BopDb =
   | NeonHttpDatabase<typeof schema>
