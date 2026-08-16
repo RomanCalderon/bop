@@ -74,7 +74,7 @@ export async function addPlace(
 > {
   try {
     await requireAllowedSession();
-    return addPlaceWithDeps({
+    return await addPlaceWithDeps({
       db,
       places: createPlacesClient(process.env.GOOGLE_PLACES_SERVER_KEY ?? ""),
       placeId,
