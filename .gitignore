@@ -5,3 +5,6 @@ node_modules/
 .next/
 drizzle/
 next-env.d.ts
+.vercel
+.env*
+tsconfig.tsbuildinfo
