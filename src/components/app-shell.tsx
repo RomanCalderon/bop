@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { AutocompleteSuggestion, BrowsePayload, BrowsePlace } from "@/lib/places-types";
 import { AddPlace } from "./add-place";
 import { BrowseApp } from "./browse-app";
@@ -80,8 +80,6 @@ function payloadFromFirstPlace(place: BrowsePlace): BrowsePayload {
 
 export function AppShell(props: AppShellActions) {
   const [payload, setPayload] = useState(props.initial);
-  const payloadRef = useRef(payload);
-  payloadRef.current = payload;
   const [selected, setSelected] = useState<BrowsePlace | null>(null);
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -115,7 +113,7 @@ export function AppShell(props: AppShellActions) {
 
   async function handleSaved(place: BrowsePlace) {
     setAdding(false);
-    const viewed = payloadRef.current.city?.id ?? null;
+    const viewed = payload.city?.id ?? null;
     if (viewed === place.cityId) {
       upsertPlace(place);
       return;
@@ -129,7 +127,7 @@ export function AppShell(props: AppShellActions) {
   }
 
   async function handleChanged(place: BrowsePlace) {
-    const viewed = payloadRef.current.city?.id;
+    const viewed = payload.city?.id;
     if (viewed && place.cityId !== viewed) {
       const next = await loadCity(viewed);
       if (next) setPayload(next);
@@ -147,7 +145,7 @@ export function AppShell(props: AppShellActions) {
   }
 
   async function openExistingPlace(existingPlaceId: string, cityId: string) {
-    const inView = payloadRef.current.places.find((p) => p.id === existingPlaceId);
+    const inView = payload.places.find((p) => p.id === existingPlaceId);
     if (inView) {
       setSelected(inView);
       return;

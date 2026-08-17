@@ -3,30 +3,9 @@
 import { asc, count, eq } from "drizzle-orm";
 import { db, type BopDb } from "@/db";
 import { areas, cities, places, userPreferences } from "@/db/schema";
-import { toBrowsePlace } from "@/actions/place-view";
-import type { BrowsePayload, PlaceRow } from "@/lib/places-types";
+import { toBrowsePlace, toPlaceRow } from "@/actions/place-view";
+import type { BrowsePayload } from "@/lib/places-types";
 import { requireAllowedSession } from "@/lib/require-allowed";
-
-export function toPlaceRow(row: typeof places.$inferSelect): PlaceRow {
-  return {
-    id: row.id,
-    placeId: row.placeId,
-    name: row.name,
-    lat: row.lat,
-    lng: row.lng,
-    formattedAddress: row.formattedAddress,
-    cityId: row.cityId,
-    areaId: row.areaId,
-    type: row.type,
-    extraTags: row.extraTags,
-    notes: row.notes,
-    rating: row.rating,
-    googleMapsUrl: row.googleMapsUrl,
-    photoName: row.photoName,
-    authorAttributions: row.authorAttributions,
-    seedFeatureCid: row.seedFeatureCid,
-  };
-}
 
 export async function getBrowsePayloadWithDeps(
   database: BopDb,

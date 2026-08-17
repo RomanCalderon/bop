@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getBrowsePayload } from "@/actions/browse";
 import {
@@ -17,9 +18,9 @@ export default async function SettingsPage() {
   const browse = await getBrowsePayload();
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
-      <a href="/" className="text-sm underline">
+      <Link href="/" className="text-sm underline">
         Back
-      </a>
+      </Link>
       <h1 className="mt-4 text-2xl font-semibold">Settings</h1>
       <SettingsForm
         envEmails={emails.env}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { filterPlaces, sortByDistance } from "@/lib/filters";
 import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
 import { CitySwitcher } from "./city-switcher";
@@ -28,10 +29,11 @@ export function BrowseApp({
     null,
   );
   const [geoDenied, setGeoDenied] = useState(false);
-
-  useEffect(() => {
+  const [prevPayload, setPrevPayload] = useState(payload);
+  if (payload !== prevPayload) {
+    setPrevPayload(payload);
     setCurrent(payload);
-  }, [payload]);
+  }
 
   const filtered = useMemo(() => {
     const next = filterPlaces(current.places, { query, type, areaId, extraTag });
@@ -80,7 +82,7 @@ export function BrowseApp({
           <button type="button" aria-label="Add place" onClick={() => onAdd?.()}>
             +
           </button>
-          <a href="/settings">Settings</a>
+          <Link href="/settings">Settings</Link>
         </div>
       </header>
 

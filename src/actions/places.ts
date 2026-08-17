@@ -12,8 +12,7 @@ import type {
   PlacesPort,
 } from "@/lib/places-types";
 import { requireAllowedSession } from "@/lib/require-allowed";
-import { toBrowsePlace } from "@/actions/place-view";
-import { toPlaceRow } from "@/actions/browse";
+import { toBrowsePlace, toPlaceRow } from "@/actions/place-view";
 
 export async function addPlaceWithDeps(opts: {
   db: BopDb;
