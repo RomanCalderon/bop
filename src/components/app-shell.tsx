@@ -113,6 +113,7 @@ export function AppShell(props: AppShellActions) {
 
   async function handleSaved(place: BrowsePlace) {
     setAdding(false);
+    setSelected(place);
     const viewed = payload.city?.id ?? null;
     if (viewed === place.cityId) {
       upsertPlace(place);

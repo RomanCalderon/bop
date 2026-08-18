@@ -71,7 +71,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
   });
 
-  it("adds a place from the overlay and shows the new row", async () => {
+  it("adds a place from the overlay and opens its details card", async () => {
     const user = userEvent.setup();
     const added: BrowsePlace = { ...place, id: "p2", name: "New Cafe", type: "cafe" };
     render(
@@ -101,7 +101,10 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Add place" }));
     await user.type(screen.getByPlaceholderText("Search Google places"), "cafe");
     await user.click(screen.getByRole("button", { name: /New Cafe/ }));
-    expect(await screen.findByText("New Cafe")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "New Cafe" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "New Cafe" })).toBeInTheDocument();
   });
 
   it("sets city and cities after the first add from empty", async () => {
@@ -148,7 +151,9 @@ describe("AppShell", () => {
     await user.type(screen.getByPlaceholderText("Search Google places"), "books");
     await user.click(screen.getByRole("button", { name: /Slant of Light Books/ }));
     expect(onCityChange).toHaveBeenCalledWith("c1");
-    expect(await screen.findByText("Slant of Light Books")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Slant of Light Books" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /city/i })).toBeNull();
     expect(screen.getByLabelText("City")).toHaveValue("c1");
   });
