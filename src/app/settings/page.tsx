@@ -12,8 +12,9 @@ import { getAllowedSession } from "@/lib/session";
 
 export default async function SettingsPage() {
   const session = await getAllowedSession();
-  if (!session.ok && session.reason === "unauthenticated") redirect("/sign-in");
-  if (!session.ok && session.reason === "not_invited") redirect("/not-invited");
+  if (!session.ok) {
+    redirect(session.reason === "unauthenticated" ? "/sign-in" : "/not-invited");
+  }
   const emails = await listAllowedEmails();
   const browse = await getBrowsePayload();
   return (
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
         envEmails={emails.env}
         tableEmails={emails.table}
         cities={browse.cities.map((c) => ({ id: c.id, name: c.name }))}
+        userEmail={session.user.email}
         inviteEmail={inviteEmail}
         removeAllowedEmail={removeAllowedEmail}
         renameCity={renameCity}
