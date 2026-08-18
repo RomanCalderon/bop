@@ -84,42 +84,39 @@ export function PlaceDetail({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-[24px] bg-[var(--sheet)] shadow-xl md:inset-y-0 md:right-0 md:left-auto md:h-full md:w-[28rem] md:rounded-none md:border-l md:border-stone-300"
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[24px] bg-[var(--sheet)] shadow-xl md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[28rem] md:rounded-none md:border-l md:border-stone-300"
       >
-        <div className="bop-sheet-enter flex min-h-0 flex-1 flex-col overflow-auto p-4">
-          <div className="mb-3">
-            <button
-              type="button"
-              aria-hidden="true"
-              tabIndex={-1}
-              onClick={onClose}
-              className="mx-auto mb-2 block h-1 w-9 rounded-full bg-stone-400 md:hidden"
-            />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={onClose}
-                className={`${ring} flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_8%,var(--sheet))] hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--sheet))]`}
-              >
-                <CloseIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        <div className="bop-sheet-enter relative flex min-h-0 flex-1 flex-col overflow-auto">
+          <button
+            type="button"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={onClose}
+            className="absolute left-1/2 top-2 z-10 h-1 w-9 -translate-x-1/2 rounded-full bg-white/80 shadow-sm md:hidden"
+          />
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className={`${ring} absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--sheet)_88%,white)] shadow-sm hover:bg-[var(--sheet)]`}
+          >
+            <CloseIcon className="h-4 w-4" />
+          </button>
           {place.photoName && !brokenPhoto ? (
             <img
               src={`/api/photos?name=${encodeURIComponent(place.photoName)}`}
               alt=""
-              className="h-40 w-full rounded-xl object-cover"
+              className="h-64 w-full object-cover md:h-72"
               onError={() => setBrokenPhoto(true)}
             />
           ) : (
-            <div className="h-40 rounded-xl bg-stone-300" />
+            <div className="h-64 bg-stone-300 md:h-72" />
           )}
+          <div className="p-4 pt-3">
           {attribution ? (
-            <p className="mt-1 text-xs text-[var(--muted)]">Photo: {attribution}</p>
+            <p className="text-xs text-[var(--muted)]">Photo: {attribution}</p>
           ) : null}
-          <h2 id={titleId} className="mt-3 text-xl font-semibold text-balance">
+          <h2 id={titleId} className="mt-2 text-xl font-semibold text-balance">
             {place.name}
           </h2>
           <p className="text-sm text-[var(--muted)]">
@@ -278,6 +275,7 @@ export function PlaceDetail({
               </button>
             </div>
           ) : null}
+          </div>
         </div>
       </div>
     </>
