@@ -5,6 +5,7 @@ export type PlaceFilterable = {
   type: string | null;
   extraTags: string[];
   areaId: string | null;
+  areaName?: string | null;
   lat: number;
   lng: number;
 };
@@ -22,6 +23,7 @@ function haystack(place: PlaceFilterable): string {
     place.formattedAddress,
     place.notes,
     place.type ?? "",
+    place.areaName ?? "",
     ...place.extraTags,
   ]
     .join(" ")

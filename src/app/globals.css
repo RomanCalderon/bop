@@ -3,7 +3,9 @@
 :root {
   --ink: #1c1917;
   --paper: #f5f0e8;
+  --sheet: #faf6ef;
   --accent: #c45c26;
+  --muted: #78716c;
 }
 
 html,
@@ -11,4 +13,63 @@ body {
   min-height: 100%;
   background: var(--paper);
   color: var(--ink);
+}
+
+@keyframes bop-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(12%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bop-sheet-right {
+  from {
+    opacity: 0;
+    transform: translateX(8%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bop-sheet-up {
+  animation: bop-sheet-up 220ms ease-out;
+}
+
+.bop-sheet-enter {
+  animation: bop-sheet-up 220ms ease-out;
+}
+
+@media (min-width: 768px) {
+  .bop-sheet-enter {
+    animation: bop-sheet-right 220ms ease-out;
+  }
+}
+
+.bop-fade {
+  animation: bop-fade 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

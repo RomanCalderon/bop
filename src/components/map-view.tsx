@@ -11,6 +11,7 @@ import {
   useApiLoadingStatus,
 } from "@vis.gl/react-google-maps";
 import { bopMapStyle } from "@/lib/map-style";
+import { pinAppearance, pinIconUrl } from "@/lib/map-pins";
 import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
 
 class MapErrorBoundary extends Component<
@@ -40,29 +41,30 @@ function MapCanvas({
   city,
   places,
   markerIds,
+  selectedPlaceId,
   onSelect,
 }: {
   city: BrowsePayload["city"];
   places: BrowsePlace[];
   markerIds: string[];
+  selectedPlaceId: string | null;
   onSelect: (id: string) => void;
 }) {
   const status = useApiLoadingStatus();
+  const defaultZoom = city ? 12 : 4;
+  const [zoom, setZoom] = useState(defaultZoom);
   const googleMissing =
     typeof window !== "undefined" &&
     status !== APILoadingStatus.NOT_LOADED &&
     status !== APILoadingStatus.LOADING &&
     !window.google;
 
-  if (
+  const failed =
     status === APILoadingStatus.FAILED ||
     status === APILoadingStatus.AUTH_FAILURE ||
-    googleMissing
-  ) {
-    return null;
-  }
+    googleMissing;
 
-  if (status !== APILoadingStatus.LOADED) {
+  if (failed || status !== APILoadingStatus.LOADED) {
     return null;
   }
 
@@ -73,19 +75,34 @@ function MapCanvas({
     <Map
       key={city?.id ?? "none"}
       defaultCenter={center}
-      defaultZoom={city ? 12 : 4}
+      defaultZoom={defaultZoom}
       styles={bopMapStyle}
       gestureHandling="greedy"
       disableDefaultUI
       className="h-full w-full"
+      onZoomChanged={(event) => setZoom(event.detail.zoom)}
     >
-      {visible.map((place) => (
-        <Marker
-          key={place.id}
-          position={{ lat: place.lat, lng: place.lng }}
-          onClick={() => onSelect(place.id)}
-        />
-      ))}
+      {visible.map((place) => {
+        const selected = place.id === selectedPlaceId;
+        const appearance = pinAppearance(zoom, selected);
+        return (
+          <Marker
+            key={`${place.id}-${appearance.canvas}-${selected ? "on" : "off"}`}
+            position={{ lat: place.lat, lng: place.lng }}
+            title={place.name}
+            zIndex={selected ? 2 : 1}
+            icon={{
+              url: pinIconUrl(appearance),
+              scaledSize: new google.maps.Size(appearance.canvas, appearance.canvas),
+              anchor: new google.maps.Point(
+                appearance.canvas / 2,
+                appearance.canvas / 2,
+              ),
+            }}
+            onClick={() => onSelect(place.id)}
+          />
+        );
+      })}
     </Map>
   );
 }
@@ -94,11 +111,13 @@ export function MapView({
   city,
   places,
   markerIds,
+  selectedPlaceId = null,
   onSelect,
 }: {
   city: BrowsePayload["city"];
   places: BrowsePlace[];
   markerIds: string[];
+  selectedPlaceId?: string | null;
   onSelect: (id: string) => void;
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
@@ -107,17 +126,21 @@ export function MapView({
 
   return (
     <MapErrorBoundary>
-      <APIProvider
-        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""}
-        onError={() => setLoadFailed(true)}
-      >
-        <MapCanvas
-          city={city}
-          places={places}
-          markerIds={markerIds}
-          onSelect={onSelect}
-        />
-      </APIProvider>
+      <div className="h-full w-full">
+        <APIProvider
+          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""}
+          onError={() => setLoadFailed(true)}
+        >
+          <MapCanvas
+            key={city?.id ?? "none"}
+            city={city}
+            places={places}
+            markerIds={markerIds}
+            selectedPlaceId={selectedPlaceId}
+            onSelect={onSelect}
+          />
+        </APIProvider>
+      </div>
     </MapErrorBoundary>
   );
 }

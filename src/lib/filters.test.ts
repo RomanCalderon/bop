@@ -14,6 +14,7 @@ const places: PlaceFilterable[] = [
     type: "book store",
     extraTags: ["rainy-day"],
     areaId: "east",
+    areaName: "East Austin",
     lat: 30.267,
     lng: -97.743,
   },
@@ -47,7 +48,7 @@ const none = {
 };
 
 describe("filterPlaces", () => {
-  it("matches free text against name, address, notes, type, and extra tags", () => {
+  it("matches free text against name, address, notes, type, extra tags, and area name", () => {
     expect(filterPlaces(places, { ...none, query: "quiet" }).map((p) => p.name)).toEqual([
       "Slant of Light Books",
     ]);
@@ -59,6 +60,9 @@ describe("filterPlaces", () => {
     ]);
     expect(filterPlaces(places, { ...none, query: "late" }).map((p) => p.name)).toEqual([
       "Nickel City",
+    ]);
+    expect(filterPlaces(places, { ...none, query: "east austin" }).map((p) => p.name)).toEqual([
+      "Slant of Light Books",
     ]);
   });
 

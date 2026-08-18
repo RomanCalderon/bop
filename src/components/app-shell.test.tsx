@@ -195,6 +195,7 @@ describe("AppShell", () => {
       />,
     );
     await user.click(screen.getByText("Slant of Light Books"));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Edit" }));
     await user.selectOptions(
       within(screen.getByRole("dialog")).getByLabelText("City"),
       "c2",

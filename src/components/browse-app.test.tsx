@@ -74,6 +74,8 @@ describe("BrowseApp", () => {
     );
     expect(screen.getByText("Slant of Light Books")).toBeInTheDocument();
     expect(screen.getByTestId("markers").textContent).toContain("p1");
+    expect(screen.queryByRole("button", { name: "bar" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
     await user.click(screen.getByRole("button", { name: "bar" }));
     expect(screen.queryByText("Slant of Light Books")).not.toBeInTheDocument();
     expect(screen.getByText("Nickel City")).toBeInTheDocument();
@@ -92,6 +94,9 @@ describe("BrowseApp", () => {
     expect(
       screen.getByText("Nothing matches — clear filters."),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Nothing matches — clear filters." }));
+    expect(screen.getByText("Slant of Light Books")).toBeInTheDocument();
+    expect(screen.getByText("Nickel City")).toBeInTheDocument();
   });
 
   it("shows the no-city empty state", () => {

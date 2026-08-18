@@ -161,6 +161,7 @@ export function AppShell(props: AppShellActions) {
     <>
       <BrowseApp
         payload={payload}
+        selectedPlaceId={selected?.id ?? null}
         onCityChange={async (id) => {
           const next = await props.onCityChange(id);
           if (isCityChangeFailure(next)) {
