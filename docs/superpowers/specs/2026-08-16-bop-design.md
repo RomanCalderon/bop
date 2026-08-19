@@ -45,7 +45,7 @@ Tagline: *For when you are bopping around town from place to place.*
 - Cities are first-class. Switching city swaps the place set, area list, and map center.
 - On first load after sign-in: last-used city, or the city with the most places if none is stored.
 - On save, infer city from Place Details address components (`locality`, else `administrative_area_level_1`). Match an existing city name (case-insensitive) or create one. The user can create/rename cities and move places between them.
-- If inference fails, save into the city currently being viewed and leave city/area editable. Never drop the save.
+- For in-app add, if city inference fails, save into the city currently being viewed and leave city/area editable. The seed CLI has no current city; if it cannot infer a city, it records the row as failed and does not insert it.
 
 ### Filters
 
@@ -136,13 +136,15 @@ Google Maps collection CSV columns: **Note**, **URL**, **Tags**, **Comments**.
 
 Per row:
 
-1. Parse name from `/place/…/` and persist the feature-id/CID pair.
+1. Parse name from `/place/…/` and retain the feature-id/CID pair for the report and, on a successful insert only, on the place row.
 2. Places Text Search by name.
 3. If Text Search returns **exactly one** result → Place Details → same insert path as in-app add → attach Note.
-4. If two or more hits → **ambiguous**: log for pick/skip, **do not insert**.
+4. If two or more hits → **ambiguous**: include candidate names, formatted addresses, and `place_id`s in the report; do not insert.
 5. If zero hits, custom pin, or API error → **failed**: log, do not insert.
 
-The script writes a review report: **resolved / ambiguous / failed**. That report is the review surface (pick or skip ambiguous rows). Re-runs skip rows whose feature-id/CID or resolved `place_id` is already stored.
+The script writes a review report with **resolved / ambiguous / failed** sections. V1 is report-only: it has no interactive picker or resolution mapping file. Ambiguous and failed rows remain out of the database; a user may add a skipped place later through the normal in-app search.
+
+Re-runs skip a row if its feature-id/CID is already stored. After resolution and city inference, insertion also reuses the existing row when the same `(place_id, city_id)` already exists.
 
 Name-only search can collide; custom pins may not resolve. That is expected and must stay visible in the report.
 
@@ -161,7 +163,7 @@ Name-only search can collide; custom pins may not resolve. That is expected and 
 - Places down, quota, empty, or timeout (one retry) → “Couldn’t find that — try a more specific name.”
 - Details fail after pick → do not save a half-row; “Couldn’t save, try again.”
 - Duplicate place id in city → open existing.
-- City/area inference miss → save to current city; fields stay editable.
+- In-app city/area inference miss → save to current city; fields stay editable. Seed city inference miss → failed report entry, no insert. A missing area alone does not block either path.
 - Browse/server error → last good list if present, else inline retry.
 - Photo fail → placeholder; place remains usable.
 - Geolocation denied → hide near-me.
@@ -173,7 +175,7 @@ Name-only search can collide; custom pins may not resolve. That is expected and 
 
 **Unit:** CSV URL parser (slug + feature-id/CID); city/area inference from Place Details address components; filter/search over a fixture (text, type, area, extra tags, combined); duplicate place id in a city; allowlist check (env ∪ table).
 
-**Seed:** fixture CSV with one clean resolve, one ambiguous name, one miss/custom pin, one Note that must persist, empty Tags/Comments ignored. Assert report buckets and that ambiguous/failed rows are not inserted. Re-run → no duplicate inserts.
+**Seed:** fixture CSV with one clean resolve, one ambiguous name, one miss/custom pin, one Place Details result with no inferable city, one Note that must persist, empty Tags/Comments ignored. Assert report buckets and that ambiguous/failed rows are not inserted. Re-run skip paths, asserted independently: (1) same feature-id/CID already stored → skip before Text Search; (2) same `(place_id, city_id)` already stored → reuse existing row, no second insert.
 
 **API:** mocked Autocomplete + Details → persisted row. Duplicate `place_id` in city → existing row. Unallowlisted session → 403 on place and photo routes. Photo route requires a session.
 
