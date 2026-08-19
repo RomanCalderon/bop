@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
@@ -279,6 +279,58 @@ describe("AppShell", () => {
     );
     resolveCard(place);
     expect(await screen.findByText("Photo: Ada")).toBeInTheDocument();
+  });
+
+  it("ignores a late card fetch after another place is opened", async () => {
+    const user = userEvent.setup();
+    const placeB: BrowsePlace = {
+      ...place,
+      id: "p2",
+      placeId: "ChIJ2",
+      name: "New Cafe",
+      type: "cafe",
+      rating: 4.2,
+      googleMapsUrl: "https://maps.google.com/?cid=2",
+      authorAttributions: [{ displayName: "Bea", uri: null }],
+    };
+    const initial = {
+      ...payload,
+      types: ["book store", "cafe"],
+      places: [toIndexPlace(place), toIndexPlace(placeB)],
+    };
+    let resolveA: (value: BrowsePlace) => void = () => {};
+    const cardA = new Promise<BrowsePlace>((resolve) => {
+      resolveA = resolve;
+    });
+    const cardB = new Promise<BrowsePlace>(() => {});
+    const getPlaceCard = vi.fn((id: string) => (id === "p1" ? cardA : cardB));
+    render(
+      <AppShell
+        initial={initial}
+        onCityChange={async () => initial}
+        getPlaceCard={getPlaceCard}
+        searchPlaces={async () => ({ ok: true, suggestions: [] })}
+        addPlace={async () => ({ ok: true, place, created: true })}
+        updatePlace={async () => ({ ok: true, place })}
+        deletePlace={async () => ({ ok: true })}
+        movePlace={async () => ({ ok: true, place })}
+        createArea={async () => ({ ok: true, area: { id: "east", name: "East" } })}
+      />,
+    );
+    await user.click(screen.getByText("Slant of Light Books"));
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+    await user.click(screen.getByText("New Cafe"));
+    expect(screen.getByRole("heading", { name: "New Cafe" })).toBeInTheDocument();
+    await act(async () => {
+      resolveA(place);
+    });
+    expect(screen.getByRole("heading", { name: "New Cafe" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Slant of Light Books" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Photo: Ada")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in Google Maps" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
   });
 
   it("does not refetch card fields after add already returned a full place", async () => {

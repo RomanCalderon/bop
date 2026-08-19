@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   hasCardFields,
   type AutocompleteSuggestion,
@@ -109,6 +109,7 @@ export function AppShell(props: AppShellActions) {
   const [cardStatus, setCardStatus] = useState<"pending" | "ready">("ready");
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
 
   async function loadCity(cityId: string): Promise<BrowsePayload | null> {
     try {
@@ -139,13 +140,19 @@ export function AppShell(props: AppShellActions) {
   }
 
   function openPlace(place: PlaceIndex | BrowsePlace) {
+    selectedIdRef.current = place.id;
     setSelected(place);
     if (hasCardFields(place)) {
       setCardStatus("ready");
       return;
     }
     setCardStatus("pending");
-    void props.getPlaceCard(place.id).then((card) => {
+    const requestedId = place.id;
+    void props.getPlaceCard(requestedId).then((card) => {
+      if (selectedIdRef.current !== requestedId) {
+        if (card) upsertPlace(card);
+        return;
+      }
       if (!card) {
         setCardStatus("ready");
         return;
@@ -158,6 +165,7 @@ export function AppShell(props: AppShellActions) {
 
   async function handleSaved(place: BrowsePlace) {
     setAdding(false);
+    selectedIdRef.current = place.id;
     setSelected(place);
     setCardStatus("ready");
     const viewed = payload.city?.id ?? null;
@@ -184,11 +192,13 @@ export function AppShell(props: AppShellActions) {
           places: prev.places.filter((p) => p.id !== place.id),
         }));
       }
+      selectedIdRef.current = place.id;
       setSelected(place);
       setCardStatus("ready");
       return;
     }
     upsertPlace(place);
+    selectedIdRef.current = place.id;
     setSelected(place);
     setCardStatus("ready");
   }
@@ -260,7 +270,10 @@ export function AppShell(props: AppShellActions) {
             }
             return result;
           }}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            selectedIdRef.current = null;
+            setSelected(null);
+          }}
           onChanged={(place) => {
             void handleChanged(place);
           }}
@@ -269,6 +282,7 @@ export function AppShell(props: AppShellActions) {
               ...prev,
               places: prev.places.filter((p) => p.id !== id),
             }));
+            selectedIdRef.current = null;
             setSelected(null);
           }}
           onError={setToast}
