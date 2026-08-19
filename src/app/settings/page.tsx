@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getBrowsePayload } from "@/actions/browse";
+import { listCitiesWithDeps } from "@/actions/browse";
 import {
   inviteEmail,
   listAllowedEmails,
@@ -8,6 +8,7 @@ import {
   renameCity,
 } from "@/actions/settings";
 import { SettingsForm } from "@/components/settings-form";
+import { db } from "@/db";
 import { getAllowedSession } from "@/lib/session";
 
 export default async function SettingsPage() {
@@ -16,7 +17,7 @@ export default async function SettingsPage() {
     redirect(session.reason === "unauthenticated" ? "/sign-in" : "/not-invited");
   }
   const emails = await listAllowedEmails();
-  const browse = await getBrowsePayload();
+  const cities = await listCitiesWithDeps(db);
   return (
     <main className="mx-auto max-w-lg px-4 py-8">
       <Link href="/" className="text-sm underline">
@@ -26,7 +27,7 @@ export default async function SettingsPage() {
       <SettingsForm
         envEmails={emails.env}
         tableEmails={emails.table}
-        cities={browse.cities.map((c) => ({ id: c.id, name: c.name }))}
+        cities={cities}
         userEmail={session.user.email}
         inviteEmail={inviteEmail}
         removeAllowedEmail={removeAllowedEmail}

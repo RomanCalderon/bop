@@ -3,7 +3,11 @@ import { user } from "@/db/schema";
 import { createTestDb } from "@/test/pglite";
 import { insertPlace } from "@/lib/place-insert";
 import type { PlaceDetails } from "@/lib/places-types";
-import { getBrowsePayloadWithDeps, setLastCityWithDeps } from "./browse";
+import {
+  getBrowsePayloadWithDeps,
+  listCitiesWithDeps,
+  setLastCityWithDeps,
+} from "./browse";
 
 function spySql(client: {
   query: (...args: never[]) => unknown;
@@ -161,6 +165,18 @@ describe("getBrowsePayloadWithDeps", () => {
     const payload = await getBrowsePayloadWithDeps(db, "user-1", c.place.cityId);
     expect(payload.city?.name).toBe("Chicago");
     expect(sql.some((s) => /user_preferences/i.test(s))).toBe(false);
+    await client.close();
+  });
+});
+
+describe("listCitiesWithDeps", () => {
+  it("returns city names without querying places", async () => {
+    const { db, client } = await createTestDb();
+    await insertPlace(db, { details: austin, notes: "", cityPolicy: { type: "seed" } });
+    const sql = spySql(client);
+    const listed = await listCitiesWithDeps(db);
+    expect(listed).toEqual([{ id: expect.any(String), name: "Austin" }]);
+    expect(sql.some((s) => /from\s+"?places"?/i.test(s))).toBe(false);
     await client.close();
   });
 });

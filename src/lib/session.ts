@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { allowedEmails } from "@/db/schema";
@@ -22,10 +23,10 @@ export function evaluateSession(input: {
   return { ok: true };
 }
 
-export async function getAllowedSession(): Promise<
+export const getAllowedSession = cache(async (): Promise<
   | { ok: true; user: AllowedUser }
   | { ok: false; reason: "unauthenticated" | "not_invited" }
-> {
+> => {
   const session = await auth.api.getSession({ headers: await headers() });
   const email = session?.user.email ?? null;
   const tableRows = await db.select().from(allowedEmails);
@@ -43,4 +44,4 @@ export async function getAllowedSession(): Promise<
       name: session!.user.name,
     },
   };
-}
+});

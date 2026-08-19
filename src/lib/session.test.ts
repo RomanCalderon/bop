@@ -12,7 +12,26 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 
-import { evaluateSession } from "./session";
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    cache: <T extends (...args: never[]) => unknown>(fn: T) => {
+      let value: ReturnType<T> | undefined;
+      let ran = false;
+      return ((...args: Parameters<T>) => {
+        if (!ran) {
+          value = fn(...args) as ReturnType<T>;
+          ran = true;
+        }
+        return value;
+      }) as T;
+    },
+  };
+});
+
+import { evaluateSession, getAllowedSession } from "./session";
+import { auth } from "./auth";
 
 describe("evaluateSession", () => {
   it("is unauthenticated when there is no session user", () => {
@@ -50,5 +69,18 @@ describe("evaluateSession", () => {
         tableEmails: ["  Bob@X.COM "],
       }).ok,
     ).toBe(true);
+  });
+});
+
+describe("getAllowedSession", () => {
+  it("reuses the Better Auth lookup when called twice", async () => {
+    const getSession = vi
+      .spyOn(auth.api, "getSession")
+      .mockResolvedValue({
+        user: { id: "u1", email: "ada@x.com", name: "Ada" },
+      } as never);
+    await getAllowedSession();
+    await getAllowedSession();
+    expect(getSession).toHaveBeenCalledTimes(1);
   });
 });

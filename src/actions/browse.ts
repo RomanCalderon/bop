@@ -103,6 +103,14 @@ export async function getBrowsePayloadWithDeps(
   };
 }
 
+export async function listCitiesWithDeps(database: BopDb) {
+  const rows = await database
+    .select({ id: cities.id, name: cities.name })
+    .from(cities)
+    .orderBy(asc(cities.name));
+  return rows;
+}
+
 export async function setLastCityWithDeps(
   database: BopDb,
   userId: string,
