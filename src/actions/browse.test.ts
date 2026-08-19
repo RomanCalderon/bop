@@ -5,6 +5,26 @@ import { insertPlace } from "@/lib/place-insert";
 import type { PlaceDetails } from "@/lib/places-types";
 import { getBrowsePayloadWithDeps, setLastCityWithDeps } from "./browse";
 
+function spySql(client: {
+  query: (...args: never[]) => unknown;
+  exec?: (...args: never[]) => unknown;
+}) {
+  const sql: string[] = [];
+  const originalQuery = client.query.bind(client) as (query: string, ...rest: unknown[]) => unknown;
+  client.query = ((query: string, ...rest: unknown[]) => {
+    sql.push(query);
+    return originalQuery(query, ...rest);
+  }) as typeof client.query;
+  if (client.exec) {
+    const originalExec = client.exec.bind(client) as (query: string, ...rest: unknown[]) => unknown;
+    client.exec = ((query: string, ...rest: unknown[]) => {
+      sql.push(query);
+      return originalExec(query, ...rest);
+    }) as typeof client.exec;
+  }
+  return sql;
+}
+
 const austin: PlaceDetails = {
   placeId: "ChIJ-a",
   name: "Books",
@@ -34,6 +54,17 @@ const chicago: PlaceDetails = {
     { types: ["neighborhood"], longText: "Wicker Park" },
   ],
   primaryType: "bar",
+};
+
+const eastAustin: PlaceDetails = {
+  ...austin,
+  placeId: "ChIJ-e",
+  name: "Cafe",
+  addressComponents: [
+    { types: ["locality"], longText: "Austin" },
+    { types: ["neighborhood"], longText: "East Austin" },
+  ],
+  primaryType: "cafe",
 };
 
 describe("getBrowsePayloadWithDeps", () => {
@@ -86,6 +117,50 @@ describe("getBrowsePayloadWithDeps", () => {
     const payload = await getBrowsePayloadWithDeps(db, "user-1", null);
     expect(payload.city).toBeNull();
     expect(payload.places).toEqual([]);
+    await client.close();
+  });
+
+  it("joins area names in one query and does not call toBrowsePlace per place", async () => {
+    const { db, client } = await createTestDb();
+    await insertPlace(db, { details: austin, notes: "quiet", cityPolicy: { type: "seed" } });
+    await insertPlace(db, { details: eastAustin, notes: "", cityPolicy: { type: "seed" } });
+    await insertPlace(db, {
+      details: { ...austin, placeId: "ChIJ-a2", name: "Records" },
+      notes: "",
+      cityPolicy: { type: "seed" },
+    });
+
+    const sql = spySql(client);
+    const payload = await getBrowsePayloadWithDeps(db, "user-1", null);
+
+    expect(payload.places).toHaveLength(3);
+    expect(
+      payload.places.map((p) => [p.name, p.areaName] as const).sort(([a], [b]) => a.localeCompare(b)),
+    ).toEqual([
+      ["Books", "Downtown"],
+      ["Cafe", "East Austin"],
+      ["Records", "Downtown"],
+    ]);
+    expect(payload.areas.map((a) => a.name).sort()).toEqual(["Downtown", "East Austin"]);
+
+    const areaByIdLookups = sql.filter(
+      (s) => /from\s+"?areas"?/i.test(s) && /"?id"?\s*=/i.test(s) && !/"?city_id"?\s*=/i.test(s),
+    );
+    expect(areaByIdLookups).toEqual([]);
+    await client.close();
+  });
+
+  it("does not read user_preferences when cityId is provided", async () => {
+    const { db, client } = await createTestDb();
+    const a = await insertPlace(db, { details: austin, notes: "", cityPolicy: { type: "seed" } });
+    const c = await insertPlace(db, { details: chicago, notes: "", cityPolicy: { type: "seed" } });
+    expect(a.ok && c.ok).toBe(true);
+    if (!a.ok || !c.ok) return;
+
+    const sql = spySql(client);
+    const payload = await getBrowsePayloadWithDeps(db, "user-1", c.place.cityId);
+    expect(payload.city?.name).toBe("Chicago");
+    expect(sql.some((s) => /user_preferences/i.test(s))).toBe(false);
     await client.close();
   });
 });

@@ -3,7 +3,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import { db, type BopDb } from "@/db";
 import { areas, cities, places, userPreferences } from "@/db/schema";
-import { toBrowsePlace, toPlaceRow } from "@/actions/place-view";
+import { toPlaceRow } from "@/actions/place-view";
 import type { BrowsePayload } from "@/lib/places-types";
 import { requireAllowedSession } from "@/lib/require-allowed";
 
@@ -31,21 +31,24 @@ export async function getBrowsePayloadWithDeps(
     placeCount: Number(c.placeCount),
   }));
 
-  const pref = await database
-    .select()
-    .from(userPreferences)
-    .where(eq(userPreferences.userId, userId))
-    .limit(1);
+  const fromId = cityId ? cityRows.find((c) => c.id === cityId) : undefined;
 
-  const requested =
-    (cityId && cityRows.find((c) => c.id === cityId)) ||
-    (pref[0]?.lastCityId &&
-      cityRows.find((c) => c.id === pref[0].lastCityId)) ||
-    [...cityRows].sort((a, b) => {
-      const byCount = Number(b.placeCount) - Number(a.placeCount);
-      return byCount !== 0 ? byCount : a.name.localeCompare(b.name);
-    })[0] ||
-    null;
+  let requested = fromId ?? null;
+  if (!requested) {
+    const pref = await database
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, userId))
+      .limit(1);
+    requested =
+      (pref[0]?.lastCityId &&
+        cityRows.find((c) => c.id === pref[0].lastCityId)) ||
+      [...cityRows].sort((a, b) => {
+        const byCount = Number(b.placeCount) - Number(a.placeCount);
+        return byCount !== 0 ? byCount : a.name.localeCompare(b.name);
+      })[0] ||
+      null;
+  }
 
   if (!requested) {
     return {
@@ -58,19 +61,32 @@ export async function getBrowsePayloadWithDeps(
     };
   }
 
-  const placeRows = await database
-    .select()
+  const joined = await database
+    .select({
+      place: places,
+      areaName: areas.name,
+    })
     .from(places)
+    .leftJoin(areas, eq(places.areaId, areas.id))
     .where(eq(places.cityId, requested.id));
-  const areaRows = await database
-    .select()
-    .from(areas)
-    .where(eq(areas.cityId, requested.id));
-  const browsePlaces = await Promise.all(
-    placeRows.map((row) => toBrowsePlace(database, toPlaceRow(row))),
-  );
-  const types = [...new Set(browsePlaces.map((p) => p.type).filter((t): t is string => Boolean(t)))].sort();
+
+  const browsePlaces = joined.map((row) => ({
+    ...toPlaceRow(row.place),
+    areaName: row.areaName ?? null,
+  }));
+  const types = [
+    ...new Set(browsePlaces.map((p) => p.type).filter((t): t is string => Boolean(t))),
+  ].sort();
   const extraTags = [...new Set(browsePlaces.flatMap((p) => p.extraTags))].sort();
+  const areaById = new Map<string, string>();
+  for (const row of joined) {
+    if (row.place.areaId && row.areaName) {
+      areaById.set(row.place.areaId, row.areaName);
+    }
+  }
+  const cityAreas = [...areaById.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return {
     city: {
@@ -82,7 +98,7 @@ export async function getBrowsePayloadWithDeps(
     cities: listed,
     places: browsePlaces,
     types,
-    areas: areaRows.map((a) => ({ id: a.id, name: a.name })),
+    areas: cityAreas,
     extraTags,
   };
 }
