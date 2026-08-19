@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
-import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
+import type { BrowsePayload, BrowsePlace, PlaceIndex } from "@/lib/places-types";
 
 vi.mock("./map-view", () => ({
   MapView: ({
@@ -35,13 +35,31 @@ const place: BrowsePlace = {
   authorAttributions: [{ displayName: "Ada", uri: null }],
 };
 
+function toIndexPlace(p: BrowsePlace): PlaceIndex {
+  return {
+    id: p.id,
+    placeId: p.placeId,
+    name: p.name,
+    lat: p.lat,
+    lng: p.lng,
+    formattedAddress: p.formattedAddress,
+    cityId: p.cityId,
+    areaId: p.areaId,
+    areaName: p.areaName,
+    type: p.type,
+    extraTags: p.extraTags,
+    notes: p.notes,
+    photoName: p.photoName,
+  };
+}
+
 const payload: BrowsePayload = {
   city: { id: "c1", name: "Austin", centerLat: 30.27, centerLng: -97.74 },
   cities: [{ id: "c1", name: "Austin", placeCount: 1 }],
   types: ["book store"],
   areas: [{ id: "east", name: "East" }],
   extraTags: [],
-  places: [place],
+  places: [toIndexPlace(place)],
 };
 
 describe("AppShell", () => {
@@ -180,13 +198,13 @@ describe("AppShell", () => {
       types: ["book store"],
       areas: [],
       extraTags: [],
-      places: [chicagoPlace],
+      places: [toIndexPlace(chicagoPlace)],
     };
     render(
       <AppShell
         initial={austinPayload}
         onCityChange={async (id) => (id === "c2" ? chicagoPayload : austinPayload)}
-        getPlaceCard={async () => place}
+        getPlaceCard={async (id) => (id === "p-chi" ? chicagoPlace : place)}
         searchPlaces={async () => ({ ok: true, suggestions: [] })}
         addPlace={async () => ({ ok: true, place, created: true })}
         updatePlace={async () => ({ ok: true, place })}
@@ -214,5 +232,83 @@ describe("AppShell", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Already saved in that city.",
     );
+  });
+
+  it("opens the sheet from a list row before card fields return", async () => {
+    const user = userEvent.setup();
+    const indexOnly = {
+      id: place.id,
+      placeId: place.placeId,
+      name: place.name,
+      lat: place.lat,
+      lng: place.lng,
+      formattedAddress: place.formattedAddress,
+      cityId: place.cityId,
+      areaId: place.areaId,
+      areaName: place.areaName,
+      type: place.type,
+      extraTags: place.extraTags,
+      notes: place.notes,
+      photoName: place.photoName,
+    };
+    const initial = { ...payload, places: [indexOnly] };
+    let resolveCard: (value: BrowsePlace) => void = () => {};
+    const cardPromise = new Promise<BrowsePlace>((resolve) => {
+      resolveCard = resolve;
+    });
+    const getPlaceCard = vi.fn(() => cardPromise);
+    render(
+      <AppShell
+        initial={initial}
+        onCityChange={async () => initial}
+        getPlaceCard={getPlaceCard}
+        searchPlaces={async () => ({ ok: true, suggestions: [] })}
+        addPlace={async () => ({ ok: true, place, created: true })}
+        updatePlace={async () => ({ ok: true, place })}
+        deletePlace={async () => ({ ok: true })}
+        movePlace={async () => ({ ok: true, place })}
+        createArea={async () => ({ ok: true, area: { id: "east", name: "East" } })}
+      />,
+    );
+    await user.click(screen.getByText("Slant of Light Books"));
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+    expect(getPlaceCard).toHaveBeenCalledWith("p1");
+    expect(screen.getByRole("button", { name: "Open in Google Maps" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    resolveCard(place);
+    expect(await screen.findByText("Photo: Ada")).toBeInTheDocument();
+  });
+
+  it("does not refetch card fields after add already returned a full place", async () => {
+    const user = userEvent.setup();
+    const getPlaceCard = vi.fn(async () => place);
+    const added: BrowsePlace = { ...place, id: "p2", name: "New Cafe", type: "cafe" };
+    render(
+      <AppShell
+        initial={payload}
+        onCityChange={async () => payload}
+        getPlaceCard={getPlaceCard}
+        searchPlaces={async () => ({
+          ok: true,
+          suggestions: [
+            { placeId: "ChIJ-new", primaryText: "New Cafe", secondaryText: "Austin, TX" },
+          ],
+        })}
+        addPlace={async () => ({ ok: true, place: added, created: true })}
+        updatePlace={async () => ({ ok: true, place })}
+        deletePlace={async () => ({ ok: true })}
+        movePlace={async () => ({ ok: true, place })}
+        createArea={async () => ({ ok: true, area: { id: "east", name: "East" } })}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Add place" }));
+    await user.type(screen.getByPlaceholderText("Search Google places"), "cafe");
+    await user.click(screen.getByRole("button", { name: /New Cafe/ }));
+    expect(
+      await screen.findByRole("heading", { name: "New Cafe" }),
+    ).toBeInTheDocument();
+    expect(getPlaceCard).not.toHaveBeenCalled();
   });
 });

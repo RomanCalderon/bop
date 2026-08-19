@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { filterPlaces, sortByDistance } from "@/lib/filters";
 import type { BrowsePayload, PlaceIndex } from "@/lib/places-types";
+import { PlaceListSkeleton } from "./browse-skeleton";
 import { CitySwitcher } from "./city-switcher";
 import { FilterBar } from "./filter-bar";
 import { MoreIcon, NearMeIcon, PlusIcon } from "./icons";
@@ -35,6 +36,7 @@ export function BrowseApp({
     null,
   );
   const [geoDenied, setGeoDenied] = useState(false);
+  const [pendingCityId, setPendingCityId] = useState<string | null>(null);
   const [prevPayload, setPrevPayload] = useState(payload);
   if (payload !== prevPayload) {
     setPrevPayload(payload);
@@ -47,14 +49,16 @@ export function BrowseApp({
   }, [current.places, query, type, areaId, extraTag, origin]);
 
   async function handleCityChange(id: string) {
+    setPendingCityId(id);
     try {
       const next = await onCityChange(id);
       setCurrent(next);
       setType(null);
       setAreaId(null);
       setExtraTag(null);
+      setPendingCityId(null);
     } catch {
-      // keep last-good list
+      setPendingCityId(null);
     }
   }
 
@@ -70,7 +74,17 @@ export function BrowseApp({
       <header className="flex items-center justify-between gap-2 px-4 py-3 md:col-start-1 md:row-start-1 md:border-r md:border-stone-300">
         <CitySwitcher
           cities={current.cities}
-          city={current.city}
+          city={
+            pendingCityId
+              ? {
+                  id: pendingCityId,
+                  name:
+                    current.cities.find((c) => c.id === pendingCityId)?.name ??
+                    current.city?.name ??
+                    "",
+                }
+              : current.city
+          }
           onChange={handleCityChange}
         />
         <div className="flex items-center gap-2">
@@ -111,7 +125,10 @@ export function BrowseApp({
         </div>
       </header>
 
-      <div className="h-full min-h-0 md:col-start-2 md:row-span-3 md:row-start-1">
+      <div
+        className="h-full min-h-0 md:col-start-2 md:row-span-3 md:row-start-1"
+        aria-busy={pendingCityId ? true : undefined}
+      >
         <MapView
           city={current.city}
           places={filtered}
@@ -144,6 +161,7 @@ export function BrowseApp({
 
       <section
         aria-label="Places"
+        aria-busy={pendingCityId ? true : undefined}
         className="flex min-h-0 flex-col md:col-start-1 md:row-start-3 md:border-r md:border-stone-300"
       >
         <PlaceList
@@ -151,7 +169,9 @@ export function BrowseApp({
           origin={origin}
           selectedId={selectedPlaceId}
           empty={
-            current.city === null ? (
+            pendingCityId ? (
+              <PlaceListSkeleton />
+            ) : current.city === null ? (
               <EmptyCity onAdd={onAdd} />
             ) : (
               <NoMatchEmpty onClear={clearAllFilters} />

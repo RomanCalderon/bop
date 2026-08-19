@@ -110,4 +110,51 @@ describe("BrowseApp", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /city/i })).toBeDisabled();
   });
+
+  it("keeps the current list visible while the next city payload is in flight", async () => {
+    const user = userEvent.setup();
+    let resolveCity: (value: BrowsePayload) => void = () => {};
+    const pending = new Promise<BrowsePayload>((resolve) => {
+      resolveCity = resolve;
+    });
+    const chicago: BrowsePayload = {
+      city: { id: "c2", name: "Chicago", centerLat: 41.8, centerLng: -87.6 },
+      cities: payload.cities,
+      types: ["bar"],
+      areas: [],
+      extraTags: [],
+      places: [
+        {
+          id: "p-chi",
+          placeId: "ChIJ-chi",
+          name: "The Violet Hour",
+          lat: 41.9,
+          lng: -87.68,
+          formattedAddress: "Chicago",
+          cityId: "c2",
+          areaId: null,
+          areaName: null,
+          type: "bar",
+          extraTags: [],
+          notes: "",
+          photoName: null,
+        },
+      ],
+    };
+    render(
+      <BrowseApp
+        payload={payload}
+        onCityChange={() => pending}
+      />,
+    );
+    await user.selectOptions(screen.getByLabelText("City"), "c2");
+    expect(screen.getByText("Slant of Light Books")).toBeInTheDocument();
+    expect(screen.queryByText("Add a place to start a city.")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Places" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByLabelText("City")).toHaveValue("c2");
+    resolveCity(chicago);
+    expect(await screen.findByText("The Violet Hour")).toBeInTheDocument();
+    expect(screen.queryByText("Slant of Light Books")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Places" })).not.toHaveAttribute("aria-busy");
+  });
 });

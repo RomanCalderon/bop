@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import type { BrowsePlace } from "@/lib/places-types";
+import { hasCardFields, type BrowsePlace, type PlaceIndex } from "@/lib/places-types";
 import { ChevronIcon, CloseIcon } from "./icons";
 
 const ring =
@@ -9,6 +9,7 @@ const ring =
 
 export function PlaceDetail({
   place,
+  cardStatus,
   cities,
   areas,
   updatePlace,
@@ -20,7 +21,8 @@ export function PlaceDetail({
   onDeleted,
   onError,
 }: {
-  place: BrowsePlace;
+  place: PlaceIndex | BrowsePlace;
+  cardStatus: "pending" | "ready";
   cities: { id: string; name: string }[];
   areas: { id: string; name: string }[];
   updatePlace: (
@@ -59,10 +61,16 @@ export function PlaceDetail({
   const [tags, setTags] = useState(place.extraTags.join(", "));
   const [type, setType] = useState(place.type ?? "");
   const [brokenPhoto, setBrokenPhoto] = useState(false);
-  const attribution = place.authorAttributions
-    .map((a) => a.displayName)
-    .filter(Boolean)
-    .join(", ");
+  const attribution =
+    hasCardFields(place) && place.authorAttributions.length
+      ? place.authorAttributions
+          .map((a) => a.displayName)
+          .filter(Boolean)
+          .join(", ")
+      : "";
+  const mapsClassName = `${ring} mt-5 block rounded-full bg-[var(--ink)] px-4 py-3 text-center text-[var(--paper)] hover:opacity-90`;
+  const mapsPending =
+    cardStatus === "pending" || !hasCardFields(place) || !place.googleMapsUrl;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -120,7 +128,13 @@ export function PlaceDetail({
             {place.name}
           </h2>
           <p className="text-sm text-[var(--muted)]">
-            {[place.type, place.areaName, place.rating != null ? `${place.rating} ★` : null]
+            {[
+              place.type,
+              place.areaName,
+              hasCardFields(place) && place.rating != null
+                ? `${place.rating} ★`
+                : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -147,14 +161,26 @@ export function PlaceDetail({
               <p className="mt-1 max-w-prose text-sm leading-relaxed">{place.notes}</p>
             </section>
           ) : null}
-          <a
-            href={place.googleMapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={`${ring} mt-5 block rounded-full bg-[var(--ink)] px-4 py-3 text-center text-[var(--paper)] hover:opacity-90`}
-          >
-            Open in Google Maps
-          </a>
+          {hasCardFields(place) && !mapsPending ? (
+            <a
+              href={place.googleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={mapsClassName}
+            >
+              Open in Google Maps
+            </a>
+          ) : (
+            <button
+              type="button"
+              aria-busy="true"
+              aria-label="Open in Google Maps"
+              className={mapsClassName}
+              disabled
+            >
+              Open in Google Maps
+            </button>
+          )}
           <button
             type="button"
             aria-expanded={editing}

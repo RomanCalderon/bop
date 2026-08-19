@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { AutocompleteSuggestion, BrowsePayload, BrowsePlace } from "@/lib/places-types";
+import {
+  hasCardFields,
+  type AutocompleteSuggestion,
+  type BrowsePayload,
+  type BrowsePlace,
+  type PlaceIndex,
+} from "@/lib/places-types";
 import { AddPlace } from "./add-place";
 import { BrowseApp } from "./browse-app";
 import { PlaceDetail } from "./place-detail";
@@ -59,6 +65,24 @@ function isCityChangeFailure(
   return "ok" in result && result.ok === false;
 }
 
+function toIndex(place: PlaceIndex | BrowsePlace): PlaceIndex {
+  return {
+    id: place.id,
+    placeId: place.placeId,
+    name: place.name,
+    lat: place.lat,
+    lng: place.lng,
+    formattedAddress: place.formattedAddress,
+    cityId: place.cityId,
+    areaId: place.areaId,
+    areaName: place.areaName,
+    type: place.type,
+    extraTags: place.extraTags,
+    notes: place.notes,
+    photoName: place.photoName,
+  };
+}
+
 function payloadFromFirstPlace(place: BrowsePlace): BrowsePayload {
   const name = place.formattedAddress.split(",")[0]?.trim() || "City";
   return {
@@ -69,7 +93,7 @@ function payloadFromFirstPlace(place: BrowsePlace): BrowsePayload {
       centerLng: place.lng,
     },
     cities: [{ id: place.cityId, name, placeCount: 1 }],
-    places: [place],
+    places: [toIndex(place)],
     types: place.type ? [place.type] : [],
     areas:
       place.areaId && place.areaName
@@ -79,9 +103,10 @@ function payloadFromFirstPlace(place: BrowsePlace): BrowsePayload {
   };
 }
 
-export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActions) {
+export function AppShell(props: AppShellActions) {
   const [payload, setPayload] = useState(props.initial);
-  const [selected, setSelected] = useState<BrowsePlace | null>(null);
+  const [selected, setSelected] = useState<PlaceIndex | BrowsePlace | null>(null);
+  const [cardStatus, setCardStatus] = useState<"pending" | "ready">("ready");
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -95,11 +120,12 @@ export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActi
     }
   }
 
-  function mergePlace(prev: BrowsePayload, place: BrowsePlace): BrowsePayload {
-    const exists = prev.places.some((p) => p.id === place.id);
+  function mergePlace(prev: BrowsePayload, place: PlaceIndex | BrowsePlace): BrowsePayload {
+    const index = toIndex(place);
+    const exists = prev.places.some((p) => p.id === index.id);
     const places = exists
-      ? prev.places.map((p) => (p.id === place.id ? place : p))
-      : [...prev.places, place];
+      ? prev.places.map((p) => (p.id === index.id ? index : p))
+      : [...prev.places, index];
     return {
       ...prev,
       places,
@@ -108,13 +134,32 @@ export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActi
     };
   }
 
-  function upsertPlace(place: BrowsePlace) {
+  function upsertPlace(place: PlaceIndex | BrowsePlace) {
     setPayload((prev) => mergePlace(prev, place));
+  }
+
+  function openPlace(place: PlaceIndex | BrowsePlace) {
+    setSelected(place);
+    if (hasCardFields(place)) {
+      setCardStatus("ready");
+      return;
+    }
+    setCardStatus("pending");
+    void props.getPlaceCard(place.id).then((card) => {
+      if (!card) {
+        setCardStatus("ready");
+        return;
+      }
+      setSelected(card);
+      setCardStatus("ready");
+      upsertPlace(card);
+    });
   }
 
   async function handleSaved(place: BrowsePlace) {
     setAdding(false);
     setSelected(place);
+    setCardStatus("ready");
     const viewed = payload.city?.id ?? null;
     if (viewed === place.cityId) {
       upsertPlace(place);
@@ -140,23 +185,25 @@ export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActi
         }));
       }
       setSelected(place);
+      setCardStatus("ready");
       return;
     }
     upsertPlace(place);
     setSelected(place);
+    setCardStatus("ready");
   }
 
   async function openExistingPlace(existingPlaceId: string, cityId: string) {
     const inView = payload.places.find((p) => p.id === existingPlaceId);
     if (inView) {
-      setSelected(inView as BrowsePlace);
+      openPlace(inView);
       return;
     }
     const next = await loadCity(cityId);
     if (!next) return;
     setPayload(next);
     const existing = next.places.find((p) => p.id === existingPlaceId);
-    if (existing) setSelected(existing as BrowsePlace);
+    if (existing) openPlace(existing);
   }
 
   return (
@@ -172,7 +219,7 @@ export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActi
           setPayload(next);
           return next;
         }}
-        onOpenPlace={(place) => setSelected(place as BrowsePlace)}
+        onOpenPlace={openPlace}
         onAdd={() => setAdding(true)}
       />
       {adding ? (
@@ -188,6 +235,7 @@ export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActi
         <PlaceDetail
           key={selected.id}
           place={selected}
+          cardStatus={cardStatus}
           cities={payload.cities}
           areas={payload.areas}
           updatePlace={props.updatePlace}
