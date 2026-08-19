@@ -1,110 +1,27 @@
 "use client";
 
-/// <reference types="google.maps" />
-
-import { Component, useState, type ReactNode } from "react";
-import {
-  APILoadingStatus,
-  APIProvider,
-  Map,
-  Marker,
-  useApiLoadingStatus,
-} from "@vis.gl/react-google-maps";
-import { bopMapStyle } from "@/lib/map-style";
-import { pinAppearance, pinIconUrl } from "@/lib/map-pins";
+import { useEffect, useState, type ComponentType } from "react";
+import { MapSlotPlaceholder } from "./browse-skeleton";
 import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
 
-class MapErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) return null;
-    return this.props.children;
-  }
-}
-
-function mapCenter(city: BrowsePayload["city"]) {
-  if (city?.centerLat != null && city.centerLng != null) {
-    return { lat: city.centerLat, lng: city.centerLng };
-  }
-  return { lat: 39.8, lng: -98.6 };
-}
-
-function MapCanvas({
-  city,
-  places,
-  markerIds,
-  selectedPlaceId,
-  onSelect,
-}: {
+type CanvasProps = {
   city: BrowsePayload["city"];
   places: BrowsePlace[];
   markerIds: string[];
   selectedPlaceId: string | null;
   onSelect: (id: string) => void;
-}) {
-  const status = useApiLoadingStatus();
-  const defaultZoom = city ? 12 : 4;
-  const [zoom, setZoom] = useState(defaultZoom);
-  const googleMissing =
-    typeof window !== "undefined" &&
-    status !== APILoadingStatus.NOT_LOADED &&
-    status !== APILoadingStatus.LOADING &&
-    !window.google;
+};
 
-  const failed =
-    status === APILoadingStatus.FAILED ||
-    status === APILoadingStatus.AUTH_FAILURE ||
-    googleMissing;
-
-  if (failed || status !== APILoadingStatus.LOADED) {
-    return null;
+function onIdle(cb: () => void): () => void {
+  if (typeof requestIdleCallback === "function") {
+    const id = requestIdleCallback(cb, { timeout: 1000 });
+    const cancel = globalThis.cancelIdleCallback;
+    return () => {
+      if (typeof cancel === "function") cancel(id);
+    };
   }
-
-  const visible = places.filter((place) => markerIds.includes(place.id));
-  const center = mapCenter(city);
-
-  return (
-    <Map
-      key={city?.id ?? "none"}
-      defaultCenter={center}
-      defaultZoom={defaultZoom}
-      styles={bopMapStyle}
-      gestureHandling="greedy"
-      disableDefaultUI
-      className="h-full w-full"
-      onZoomChanged={(event) => setZoom(event.detail.zoom)}
-    >
-      {visible.map((place) => {
-        const selected = place.id === selectedPlaceId;
-        const appearance = pinAppearance(zoom, selected);
-        return (
-          <Marker
-            key={`${place.id}-${appearance.canvas}-${selected ? "on" : "off"}`}
-            position={{ lat: place.lat, lng: place.lng }}
-            title={place.name}
-            zIndex={selected ? 2 : 1}
-            icon={{
-              url: pinIconUrl(appearance),
-              scaledSize: new google.maps.Size(appearance.canvas, appearance.canvas),
-              anchor: new google.maps.Point(
-                appearance.canvas / 2,
-                appearance.canvas / 2,
-              ),
-            }}
-            onClick={() => onSelect(place.id)}
-          />
-        );
-      })}
-    </Map>
-  );
+  const t = window.setTimeout(cb, 1000);
+  return () => window.clearTimeout(t);
 }
 
 export function MapView({
@@ -120,27 +37,34 @@ export function MapView({
   selectedPlaceId?: string | null;
   onSelect: (id: string) => void;
 }) {
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [Canvas, setCanvas] = useState<ComponentType<CanvasProps> | null>(null);
 
-  if (loadFailed) return null;
+  useEffect(() => {
+    let cancelled = false;
+    const stop = onIdle(() => {
+      void import("./map-canvas").then((mod) => {
+        if (!cancelled) setCanvas(() => mod.MapCanvas);
+      });
+    });
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, []);
+
+  if (!Canvas) {
+    return <MapSlotPlaceholder />;
+  }
 
   return (
-    <MapErrorBoundary>
-      <div className="h-full w-full">
-        <APIProvider
-          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""}
-          onError={() => setLoadFailed(true)}
-        >
-          <MapCanvas
-            key={city?.id ?? "none"}
-            city={city}
-            places={places}
-            markerIds={markerIds}
-            selectedPlaceId={selectedPlaceId}
-            onSelect={onSelect}
-          />
-        </APIProvider>
-      </div>
-    </MapErrorBoundary>
+    <div className="h-full w-full bg-[var(--paper)]">
+      <Canvas
+        city={city}
+        places={places}
+        markerIds={markerIds}
+        selectedPlaceId={selectedPlaceId}
+        onSelect={onSelect}
+      />
+    </div>
   );
 }
