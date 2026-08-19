@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { haversineKm } from "@/lib/filters";
+import { placePhotoSrc } from "@/lib/photo-url";
 import type { PlaceIndex } from "@/lib/places-types";
 
 export const PLACE_LIST_PAGE_SIZE = 20;
@@ -76,9 +77,12 @@ export function PlaceList({
                 // Session-gated /api/photos cannot use next/image (optimizer has no cookies).
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/photos?name=${encodeURIComponent(place.photoName)}`}
+                  src={placePhotoSrc(place.photoName, "thumb")}
                   alt=""
+                  width={56}
+                  height={56}
                   loading="lazy"
+                  decoding="async"
                   className="h-14 w-14 shrink-0 rounded-lg object-cover"
                 />
               ) : (

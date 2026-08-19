@@ -123,4 +123,26 @@ describe("createPlacesClient", () => {
     ]);
     expect(details?.primaryType).toBe("book_store");
   });
+
+  it("requests a height-capped Places photo", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "image/jpeg" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const photo = await createPlacesClient("k").fetchPhoto(
+      "places/ChIJ1/photos/AAA",
+      { maxHeightPx: 160 },
+    );
+    expect(photo?.contentType).toBe("image/jpeg");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://places.googleapis.com/v1/places/ChIJ1/photos/AAA/media?maxHeightPx=160&skipHttpRedirect=true",
+      expect.objectContaining({
+        headers: { "X-Goog-Api-Key": "k" },
+      }),
+    );
+  });
 });

@@ -7,6 +7,7 @@ import type {
   PhotoAttribution,
   TextSearchHit,
 } from "./places-types";
+import { PHOTO_MAX_HEIGHT } from "./photo-url";
 
 const AUTOCOMPLETE_MASK =
   "suggestions.placePrediction.placeId,suggestions.placePrediction.structuredFormat";
@@ -152,11 +153,15 @@ export function createPlacesClient(apiKey: string): PlacesPort {
       };
     },
 
-    async fetchPhoto(photoName: string) {
+    async fetchPhoto(
+      photoName: string,
+      options?: { maxHeightPx?: number },
+    ) {
+      const maxHeightPx = options?.maxHeightPx ?? PHOTO_MAX_HEIGHT.hero;
       let res: Response;
       try {
         res = await googleFetch(
-          `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&skipHttpRedirect=true`,
+          `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${maxHeightPx}&skipHttpRedirect=true`,
           { headers: { "X-Goog-Api-Key": apiKey } },
         );
       } catch {

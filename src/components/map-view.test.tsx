@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MapView } from "./map-view";
 import type { BrowsePlace } from "@/lib/places-types";
 
@@ -27,21 +27,6 @@ const place: BrowsePlace = {
 };
 
 describe("MapView", () => {
-  const idleCbs: Array<() => void> = [];
-
-  beforeEach(() => {
-    idleCbs.length = 0;
-    vi.stubGlobal("requestIdleCallback", (cb: () => void) => {
-      idleCbs.push(cb);
-      return 1;
-    });
-    vi.stubGlobal("cancelIdleCallback", () => {});
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("shows the reserved paper slot before Maps JS loads", () => {
     render(
       <MapView
@@ -55,7 +40,7 @@ describe("MapView", () => {
     expect(screen.queryByTestId("map-canvas")).not.toBeInTheDocument();
   });
 
-  it("loads the map canvas after idle", async () => {
+  it("loads the map canvas after mount", async () => {
     render(
       <MapView
         city={{ id: "c1", name: "Austin", centerLat: 30.27, centerLng: -97.74 }}
@@ -64,8 +49,6 @@ describe("MapView", () => {
         onSelect={() => {}}
       />,
     );
-    expect(idleCbs).toHaveLength(1);
-    idleCbs[0]!();
     await waitFor(() => {
       expect(screen.getByTestId("map-canvas")).toBeInTheDocument();
     });

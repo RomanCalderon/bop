@@ -5,12 +5,16 @@ vi.mock("@/lib/session", () => ({
   getAllowedSession: vi.fn(),
 }));
 
+const fetchPhoto = vi.hoisted(() =>
+  vi.fn(async () => ({
+    bytes: new Uint8Array([1, 2, 3]),
+    contentType: "image/jpeg",
+  })),
+);
+
 vi.mock("@/lib/places", () => ({
   createPlacesClient: () => ({
-    fetchPhoto: async () => ({
-      bytes: new Uint8Array([1, 2, 3]),
-      contentType: "image/jpeg",
-    }),
+    fetchPhoto,
   }),
 }));
 
@@ -49,5 +53,25 @@ describe("GET /api/photos", () => {
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("image/jpeg");
+    expect(fetchPhoto).toHaveBeenCalledWith("places/x/photos/y", {
+      maxHeightPx: 800,
+    });
+  });
+
+  it("forwards a thumb height to Places", async () => {
+    vi.mocked(getAllowedSession).mockResolvedValue({
+      ok: true,
+      user: { id: "u1", email: "ada@x.com", name: "Ada" },
+    });
+    fetchPhoto.mockClear();
+    const res = await GET(
+      new Request(
+        "http://localhost/api/photos?name=places/x/photos/y&h=160",
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(fetchPhoto).toHaveBeenCalledWith("places/x/photos/y", {
+      maxHeightPx: 160,
+    });
   });
 });

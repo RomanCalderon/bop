@@ -40,6 +40,7 @@ export type PlacesPort = {
   getDetails(placeId: string): Promise<PlaceDetails | null>;
   fetchPhoto(
     photoName: string,
+    options?: { maxHeightPx?: number },
   ): Promise<{ bytes: Uint8Array; contentType: string } | null>;
 };
 

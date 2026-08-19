@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { placePhotoSrc } from "@/lib/photo-url";
 import { hasCardFields, type BrowsePlace, type PlaceIndex } from "@/lib/places-types";
 import { ChevronIcon, CloseIcon } from "./icons";
 
@@ -113,7 +114,7 @@ export function PlaceDetail({
             // Session-gated /api/photos cannot use next/image (optimizer has no cookies).
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/api/photos?name=${encodeURIComponent(place.photoName)}`}
+              src={placePhotoSrc(place.photoName, "hero")}
               alt=""
               className="h-64 w-full object-cover md:h-72"
               onError={() => setBrokenPhoto(true)}

@@ -20,7 +20,7 @@ function fakePlace(index: number): BrowsePlace {
     notes: "",
     rating: null,
     googleMapsUrl: "https://maps.google.com/?cid=1",
-    photoName: null,
+    photoName: `places/ChIJ${index}/photos/AAA`,
     authorAttributions: [],
   };
 }
@@ -60,5 +60,20 @@ describe("PlaceList", () => {
       />,
     );
     expect(screen.getByText(last.name)).toBeInTheDocument();
+  });
+
+  it("requests thumbnail-sized photos for list rows", () => {
+    render(
+      <PlaceList
+        places={[fakePlace(1)]}
+        origin={null}
+        empty={null}
+        onOpen={() => {}}
+      />,
+    );
+    expect(document.querySelector("img")).toHaveAttribute(
+      "src",
+      "/api/photos?name=places%2FChIJ1%2Fphotos%2FAAA&h=160",
+    );
   });
 });

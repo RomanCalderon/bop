@@ -86,5 +86,9 @@ describe("PlaceDetail", () => {
       "href",
       "https://maps.google.com/?cid=1",
     );
+    expect(document.querySelector("img")).toHaveAttribute(
+      "src",
+      "/api/photos?name=places%2FChIJ1%2Fphotos%2FAAA&h=800",
+    );
   });
 });
