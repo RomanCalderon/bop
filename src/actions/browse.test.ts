@@ -5,6 +5,7 @@ import { insertPlace } from "@/lib/place-insert";
 import type { PlaceDetails } from "@/lib/places-types";
 import {
   getBrowsePayloadWithDeps,
+  getPlaceCardWithDeps,
   listCitiesWithDeps,
   setLastCityWithDeps,
 } from "./browse";
@@ -165,6 +166,40 @@ describe("getBrowsePayloadWithDeps", () => {
     const payload = await getBrowsePayloadWithDeps(db, "user-1", c.place.cityId);
     expect(payload.city?.name).toBe("Chicago");
     expect(sql.some((s) => /user_preferences/i.test(s))).toBe(false);
+    await client.close();
+  });
+
+  it("keeps notes on the city index and omits card-only fields", async () => {
+    const { db, client } = await createTestDb();
+    await insertPlace(db, {
+      details: austin,
+      notes: "quiet stacks",
+      cityPolicy: { type: "seed" },
+    });
+    const payload = await getBrowsePayloadWithDeps(db, "user-1", null);
+    expect(payload.places[0]?.notes).toBe("quiet stacks");
+    expect(payload.places[0]).not.toHaveProperty("seedFeatureCid");
+    expect(payload.places[0]).not.toHaveProperty("googleMapsUrl");
+    expect(payload.places[0]).not.toHaveProperty("authorAttributions");
+    expect(payload.places[0]).not.toHaveProperty("rating");
+    await client.close();
+  });
+
+  it("loads card fields for one place", async () => {
+    const { db, client } = await createTestDb();
+    const inserted = await insertPlace(db, {
+      details: austin,
+      notes: "quiet stacks",
+      cityPolicy: { type: "seed" },
+    });
+    expect(inserted.ok).toBe(true);
+    if (!inserted.ok) return;
+    const card = await getPlaceCardWithDeps(db, inserted.place.id);
+    expect(card?.notes).toBe("quiet stacks");
+    expect(card?.googleMapsUrl).toBe(austin.googleMapsUri);
+    expect(card?.rating).toBe(4.5);
+    expect(card?.areaName).toBe("Downtown");
+    expect(card).not.toHaveProperty("seedFeatureCid");
     await client.close();
   });
 });

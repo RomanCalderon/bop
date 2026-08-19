@@ -2,11 +2,11 @@
 
 import { useEffect, useState, type ComponentType } from "react";
 import { MapSlotPlaceholder } from "./browse-skeleton";
-import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
+import type { BrowsePayload, PlaceIndex } from "@/lib/places-types";
 
 type CanvasProps = {
   city: BrowsePayload["city"];
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   markerIds: string[];
   selectedPlaceId: string | null;
   onSelect: (id: string) => void;
@@ -32,7 +32,7 @@ export function MapView({
   onSelect,
 }: {
   city: BrowsePayload["city"];
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   markerIds: string[];
   selectedPlaceId?: string | null;
   onSelect: (id: string) => void;

@@ -4,7 +4,7 @@ import { asc, count, eq } from "drizzle-orm";
 import { db, type BopDb } from "@/db";
 import { areas, cities, places, userPreferences } from "@/db/schema";
 import { toPlaceRow } from "@/actions/place-view";
-import type { BrowsePayload } from "@/lib/places-types";
+import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
 import { requireAllowedSession } from "@/lib/require-allowed";
 
 export async function getBrowsePayloadWithDeps(
@@ -63,7 +63,18 @@ export async function getBrowsePayloadWithDeps(
 
   const joined = await database
     .select({
-      place: places,
+      id: places.id,
+      placeId: places.placeId,
+      name: places.name,
+      lat: places.lat,
+      lng: places.lng,
+      formattedAddress: places.formattedAddress,
+      cityId: places.cityId,
+      areaId: places.areaId,
+      type: places.type,
+      extraTags: places.extraTags,
+      notes: places.notes,
+      photoName: places.photoName,
       areaName: areas.name,
     })
     .from(places)
@@ -71,17 +82,28 @@ export async function getBrowsePayloadWithDeps(
     .where(eq(places.cityId, requested.id));
 
   const browsePlaces = joined.map((row) => ({
-    ...toPlaceRow(row.place),
+    id: row.id,
+    placeId: row.placeId,
+    name: row.name,
+    lat: row.lat,
+    lng: row.lng,
+    formattedAddress: row.formattedAddress,
+    cityId: row.cityId,
+    areaId: row.areaId,
     areaName: row.areaName ?? null,
+    type: row.type,
+    extraTags: row.extraTags,
+    notes: row.notes,
+    photoName: row.photoName,
   }));
   const types = [
     ...new Set(browsePlaces.map((p) => p.type).filter((t): t is string => Boolean(t))),
   ].sort();
   const extraTags = [...new Set(browsePlaces.flatMap((p) => p.extraTags))].sort();
   const areaById = new Map<string, string>();
-  for (const row of joined) {
-    if (row.place.areaId && row.areaName) {
-      areaById.set(row.place.areaId, row.areaName);
+  for (const row of browsePlaces) {
+    if (row.areaId && row.areaName) {
+      areaById.set(row.areaId, row.areaName);
     }
   }
   const cityAreas = [...areaById.entries()]
@@ -124,6 +146,47 @@ export async function setLastCityWithDeps(
       set: { lastCityId: cityId },
     });
   return { ok: true as const };
+}
+
+export async function getPlaceCardWithDeps(
+  database: BopDb,
+  placeId: string,
+): Promise<BrowsePlace | null> {
+  const rows = await database
+    .select({
+      place: places,
+      areaName: areas.name,
+    })
+    .from(places)
+    .leftJoin(areas, eq(places.areaId, areas.id))
+    .where(eq(places.id, placeId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const full = toPlaceRow(row.place);
+  return {
+    id: full.id,
+    placeId: full.placeId,
+    name: full.name,
+    lat: full.lat,
+    lng: full.lng,
+    formattedAddress: full.formattedAddress,
+    cityId: full.cityId,
+    areaId: full.areaId,
+    areaName: row.areaName ?? null,
+    type: full.type,
+    extraTags: full.extraTags,
+    notes: full.notes,
+    photoName: full.photoName,
+    rating: full.rating,
+    googleMapsUrl: full.googleMapsUrl,
+    authorAttributions: full.authorAttributions,
+  };
+}
+
+export async function getPlaceCard(placeId: string): Promise<BrowsePlace | null> {
+  await requireAllowedSession();
+  return getPlaceCardWithDeps(db, placeId);
 }
 
 export async function getBrowsePayload(cityId?: string | null) {

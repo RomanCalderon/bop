@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { haversineKm } from "@/lib/filters";
-import type { BrowsePlace } from "@/lib/places-types";
+import type { PlaceIndex } from "@/lib/places-types";
 
 export const PLACE_LIST_PAGE_SIZE = 20;
 
@@ -13,11 +13,11 @@ export function PlaceList({
   selectedId,
   onOpen,
 }: {
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   origin: { lat: number; lng: number } | null;
   empty: ReactNode;
   selectedId?: string | null;
-  onOpen: (place: BrowsePlace) => void;
+  onOpen: (place: PlaceIndex) => void;
 }) {
   const [limit, setLimit] = useState(PLACE_LIST_PAGE_SIZE);
   const [placeKey, setPlaceKey] = useState(() =>

@@ -35,11 +35,7 @@ const payload: BrowsePayload = {
       type: "book store",
       extraTags: [],
       notes: "Quiet",
-      rating: 4.8,
-      googleMapsUrl: "https://maps.google.com/?cid=1",
       photoName: null,
-      authorAttributions: [],
-      seedFeatureCid: null,
     },
     {
       id: "p2",
@@ -54,11 +50,7 @@ const payload: BrowsePayload = {
       type: "bar",
       extraTags: ["late"],
       notes: "",
-      rating: null,
-      googleMapsUrl: "https://maps.google.com/?cid=2",
       photoName: null,
-      authorAttributions: [],
-      seedFeatureCid: null,
     },
   ],
 };

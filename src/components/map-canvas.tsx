@@ -12,7 +12,7 @@ import {
 } from "@vis.gl/react-google-maps";
 import { bopMapStyle } from "@/lib/map-style";
 import { pinAppearance, pinIconUrl } from "@/lib/map-pins";
-import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
+import type { BrowsePayload, PlaceIndex } from "@/lib/places-types";
 import { MapSlotPlaceholder } from "./browse-skeleton";
 
 class MapErrorBoundary extends Component<
@@ -46,7 +46,7 @@ function MapCanvasInner({
   onSelect,
 }: {
   city: BrowsePayload["city"];
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   markerIds: string[];
   selectedPlaceId: string | null;
   onSelect: (id: string) => void;
@@ -116,7 +116,7 @@ export function MapCanvas({
   onSelect,
 }: {
   city: BrowsePayload["city"];
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   markerIds: string[];
   selectedPlaceId: string | null;
   onSelect: (id: string) => void;

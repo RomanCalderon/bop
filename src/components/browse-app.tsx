@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { filterPlaces, sortByDistance } from "@/lib/filters";
-import type { BrowsePayload, BrowsePlace } from "@/lib/places-types";
+import type { BrowsePayload, PlaceIndex } from "@/lib/places-types";
 import { CitySwitcher } from "./city-switcher";
 import { FilterBar } from "./filter-bar";
 import { MoreIcon, NearMeIcon, PlusIcon } from "./icons";
@@ -22,7 +22,7 @@ export function BrowseApp({
 }: {
   payload: BrowsePayload;
   onCityChange: (cityId: string) => Promise<BrowsePayload>;
-  onOpenPlace?: (place: BrowsePlace) => void;
+  onOpenPlace?: (place: PlaceIndex) => void;
   onAdd?: () => void;
   selectedPlaceId?: string | null;
 }) {

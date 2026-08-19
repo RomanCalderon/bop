@@ -22,7 +22,6 @@ function fakePlace(index: number): BrowsePlace {
     googleMapsUrl: "https://maps.google.com/?cid=1",
     photoName: null,
     authorAttributions: [],
-    seedFeatureCid: null,
   };
 }
 

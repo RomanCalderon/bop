@@ -33,7 +33,6 @@ const place: BrowsePlace = {
   googleMapsUrl: "https://maps.google.com/?cid=1",
   photoName: "places/ChIJ1/photos/AAA",
   authorAttributions: [{ displayName: "Ada", uri: null }],
-  seedFeatureCid: null,
 };
 
 const payload: BrowsePayload = {
@@ -52,6 +51,7 @@ describe("AppShell", () => {
       <AppShell
         initial={payload}
         onCityChange={async () => payload}
+        getPlaceCard={async () => place}
         searchPlaces={async () => ({ ok: true, suggestions: [] })}
         addPlace={async () => ({ ok: true, place, created: true })}
         updatePlace={async () => ({ ok: true, place })}
@@ -78,6 +78,7 @@ describe("AppShell", () => {
       <AppShell
         initial={payload}
         onCityChange={async () => payload}
+        getPlaceCard={async () => place}
         searchPlaces={async () => ({
           ok: true,
           suggestions: [
@@ -126,6 +127,7 @@ describe("AppShell", () => {
       <AppShell
         initial={empty}
         onCityChange={onCityChange}
+        getPlaceCard={async () => place}
         searchPlaces={async () => ({
           ok: true,
           suggestions: [
@@ -184,6 +186,7 @@ describe("AppShell", () => {
       <AppShell
         initial={austinPayload}
         onCityChange={async (id) => (id === "c2" ? chicagoPayload : austinPayload)}
+        getPlaceCard={async () => place}
         searchPlaces={async () => ({ ok: true, suggestions: [] })}
         addPlace={async () => ({ ok: true, place, created: true })}
         updatePlace={async () => ({ ok: true, place })}

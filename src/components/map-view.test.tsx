@@ -24,7 +24,6 @@ const place: BrowsePlace = {
   googleMapsUrl: "https://maps.google.com/?cid=1",
   photoName: null,
   authorAttributions: [],
-  seedFeatureCid: null,
 };
 
 describe("MapView", () => {

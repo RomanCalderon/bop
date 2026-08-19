@@ -78,9 +78,31 @@ export type InsertPlaceResult =
   | { ok: true; place: PlaceRow; created: boolean }
   | { ok: false; reason: "city_inference_failed" };
 
-export type BrowsePlace = PlaceRow & {
+/** City-index row: list, pins, and AND-filters (including notes search). */
+export type PlaceIndex = {
+  id: string;
+  placeId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  formattedAddress: string;
+  cityId: string;
+  areaId: string | null;
   areaName: string | null;
+  type: string | null;
+  extraTags: string[];
+  notes: string;
+  photoName: string | null;
 };
+
+export type PlaceCardFields = {
+  rating: number | null;
+  googleMapsUrl: string;
+  authorAttributions: PhotoAttribution[];
+};
+
+/** Full row: mutations (add/update/move) and getPlaceCard. */
+export type BrowsePlace = PlaceIndex & PlaceCardFields;
 
 export type BrowsePayload = {
   city: {
@@ -90,8 +112,14 @@ export type BrowsePayload = {
     centerLng: number | null;
   } | null;
   cities: { id: string; name: string; placeCount: number }[];
-  places: BrowsePlace[];
+  places: PlaceIndex[];
   types: string[];
   areas: { id: string; name: string }[];
   extraTags: string[];
 };
+
+export function hasCardFields(
+  place: PlaceIndex | BrowsePlace,
+): place is BrowsePlace {
+  return "googleMapsUrl" in place && "authorAttributions" in place;
+}

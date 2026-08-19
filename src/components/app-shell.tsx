@@ -12,6 +12,7 @@ export type CityChangeResult = BrowsePayload | { ok: false; message: string };
 export type AppShellActions = {
   initial: BrowsePayload;
   onCityChange: (cityId: string) => Promise<CityChangeResult>;
+  getPlaceCard: (placeId: string) => Promise<BrowsePlace | null>;
   searchPlaces: (
     input: string,
   ) => Promise<
@@ -78,7 +79,7 @@ function payloadFromFirstPlace(place: BrowsePlace): BrowsePayload {
   };
 }
 
-export function AppShell(props: AppShellActions) {
+export function AppShell({ getPlaceCard: _getPlaceCard, ...props }: AppShellActions) {
   const [payload, setPayload] = useState(props.initial);
   const [selected, setSelected] = useState<BrowsePlace | null>(null);
   const [adding, setAdding] = useState(false);
@@ -148,14 +149,14 @@ export function AppShell(props: AppShellActions) {
   async function openExistingPlace(existingPlaceId: string, cityId: string) {
     const inView = payload.places.find((p) => p.id === existingPlaceId);
     if (inView) {
-      setSelected(inView);
+      setSelected(inView as BrowsePlace);
       return;
     }
     const next = await loadCity(cityId);
     if (!next) return;
     setPayload(next);
     const existing = next.places.find((p) => p.id === existingPlaceId);
-    if (existing) setSelected(existing);
+    if (existing) setSelected(existing as BrowsePlace);
   }
 
   return (
@@ -171,7 +172,7 @@ export function AppShell(props: AppShellActions) {
           setPayload(next);
           return next;
         }}
-        onOpenPlace={setSelected}
+        onOpenPlace={(place) => setSelected(place as BrowsePlace)}
         onAdd={() => setAdding(true)}
       />
       {adding ? (

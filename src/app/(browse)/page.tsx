@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { addPlace, deletePlace, movePlace, searchPlaces, updatePlace } from "@/actions/places";
-import { changeCity, getBrowsePayloadWithDeps } from "@/actions/browse";
+import { changeCity, getBrowsePayloadWithDeps, getPlaceCard } from "@/actions/browse";
 import { createArea } from "@/actions/settings";
 import { AppShell } from "@/components/app-shell";
 import { db } from "@/db";
@@ -16,6 +16,7 @@ export default async function HomePage() {
     <AppShell
       initial={initial}
       onCityChange={changeCity}
+      getPlaceCard={getPlaceCard}
       searchPlaces={searchPlaces}
       addPlace={addPlace}
       updatePlace={updatePlace}
