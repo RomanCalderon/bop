@@ -20,6 +20,8 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+          // PGlite WASM init contends when several action files boot DBs at once.
+          testTimeout: 20_000,
         },
       },
       {
