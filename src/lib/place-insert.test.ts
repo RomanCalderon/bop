@@ -81,6 +81,37 @@ describe("insertPlace", () => {
     await client.close();
   });
 
+  it("keeps an in-app add in the viewed city after that city was renamed", async () => {
+    const { db, client } = await createTestDb();
+    await db.insert(cities).values({ id: "viewed", name: "Chi" });
+    const result = await insertPlace(db, {
+      details: details({
+        addressComponents: [{ types: ["locality"], longText: "Chicago" }],
+      }),
+      notes: "",
+      cityPolicy: { type: "in-app", currentCityId: "viewed" },
+    });
+    expect(result.ok && result.place.cityId).toBe("viewed");
+    expect(await db.select().from(cities)).toHaveLength(1);
+    await client.close();
+  });
+
+  it("uses a matching existing city for in-app even when another city is viewed", async () => {
+    const { db, client } = await createTestDb();
+    await db.insert(cities).values([
+      { id: "viewed", name: "Chi" },
+      { id: "c-austin", name: "Austin" },
+    ]);
+    const result = await insertPlace(db, {
+      details: details(),
+      notes: "",
+      cityPolicy: { type: "in-app", currentCityId: "viewed" },
+    });
+    expect(result.ok && result.place.cityId).toBe("c-austin");
+    expect(await db.select().from(cities)).toHaveLength(2);
+    await client.close();
+  });
+
   it("falls back to the current city for in-app when inference misses", async () => {
     const { db, client } = await createTestDb();
     await db.insert(cities).values({ id: "viewed", name: "Chicago" });

@@ -29,18 +29,24 @@ function toRow(row: typeof places.$inferSelect): PlaceRow {
   };
 }
 
-async function findOrCreateCity(
+async function findCityIdByName(
   db: BopDb,
   name: string,
-  lat: number,
-  lng: number,
-): Promise<string> {
+): Promise<string | undefined> {
   const existing = await db
     .select()
     .from(cities)
     .where(sql`lower(${cities.name}) = ${name.toLowerCase()}`)
     .limit(1);
-  if (existing[0]) return existing[0].id;
+  return existing[0]?.id;
+}
+
+async function createCity(
+  db: BopDb,
+  name: string,
+  lat: number,
+  lng: number,
+): Promise<string> {
   const id = crypto.randomUUID();
   await db.insert(cities).values({
     id,
@@ -85,12 +91,19 @@ export async function insertPlace(
   const inferredCity = inferCityName(input.details.addressComponents);
   let cityId: string;
   if (inferredCity) {
-    cityId = await findOrCreateCity(
-      db,
-      inferredCity,
-      input.details.lat,
-      input.details.lng,
-    );
+    const existingId = await findCityIdByName(db, inferredCity);
+    if (existingId) {
+      cityId = existingId;
+    } else if (input.cityPolicy.type === "in-app") {
+      cityId = input.cityPolicy.currentCityId;
+    } else {
+      cityId = await createCity(
+        db,
+        inferredCity,
+        input.details.lat,
+        input.details.lng,
+      );
+    }
   } else if (input.cityPolicy.type === "in-app") {
     cityId = input.cityPolicy.currentCityId;
   } else {
