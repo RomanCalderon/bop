@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
@@ -279,6 +279,58 @@ describe("AppShell", () => {
     );
     resolveCard(place);
     expect(await screen.findByText("Photo: Ada")).toBeInTheDocument();
+  });
+
+  it("clears Maps pending when getPlaceCard rejects", async () => {
+    const user = userEvent.setup();
+    const getPlaceCard = vi.fn(() => Promise.reject(new Error("card failed")));
+    render(
+      <AppShell
+        initial={payload}
+        onCityChange={async () => payload}
+        getPlaceCard={getPlaceCard}
+        searchPlaces={async () => ({ ok: true, suggestions: [] })}
+        addPlace={async () => ({ ok: true, place, created: true })}
+        updatePlace={async () => ({ ok: true, place })}
+        deletePlace={async () => ({ ok: true })}
+        movePlace={async () => ({ ok: true, place })}
+        createArea={async () => ({ ok: true, area: { id: "east", name: "East" } })}
+      />,
+    );
+    await user.click(screen.getByText("Slant of Light Books"));
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+    expect(screen.getByText("Quiet")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+  });
+
+  it("clears Maps pending when getPlaceCard returns null", async () => {
+    const user = userEvent.setup();
+    const getPlaceCard = vi.fn(async () => null);
+    render(
+      <AppShell
+        initial={payload}
+        onCityChange={async () => payload}
+        getPlaceCard={getPlaceCard}
+        searchPlaces={async () => ({ ok: true, suggestions: [] })}
+        addPlace={async () => ({ ok: true, place, created: true })}
+        updatePlace={async () => ({ ok: true, place })}
+        deletePlace={async () => ({ ok: true })}
+        movePlace={async () => ({ ok: true, place })}
+        createArea={async () => ({ ok: true, area: { id: "east", name: "East" } })}
+      />,
+    );
+    await user.click(screen.getByText("Slant of Light Books"));
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+    expect(screen.getByText("Quiet")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
   });
 
   it("ignores a late card fetch after another place is opened", async () => {

@@ -59,6 +59,19 @@ describe("PlaceDetail", () => {
     expect(screen.queryByRole("link", { name: "Open in Google Maps" })).not.toBeInTheDocument();
   });
 
+  it("does not mark Maps busy when ready without a maps url", () => {
+    render(
+      <PlaceDetail
+        {...noop}
+        place={indexPlace}
+        cardStatus="ready"
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Slant of Light Books" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open in Google Maps" })).not.toBeInTheDocument();
+  });
+
   it("shows attribution and maps link when card fields are ready", () => {
     render(
       <PlaceDetail

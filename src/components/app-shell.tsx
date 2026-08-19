@@ -148,19 +148,26 @@ export function AppShell(props: AppShellActions) {
     }
     setCardStatus("pending");
     const requestedId = place.id;
-    void props.getPlaceCard(requestedId).then((card) => {
-      if (selectedIdRef.current !== requestedId) {
-        if (card) upsertPlace(card);
-        return;
-      }
-      if (!card) {
+    void props
+      .getPlaceCard(requestedId)
+      .then((card) => {
+        if (selectedIdRef.current !== requestedId) {
+          if (card) upsertPlace(card);
+          return;
+        }
+        if (!card) {
+          setCardStatus("ready");
+          return;
+        }
+        setSelected(card);
         setCardStatus("ready");
-        return;
-      }
-      setSelected(card);
-      setCardStatus("ready");
-      upsertPlace(card);
-    });
+        upsertPlace(card);
+      })
+      .catch(() => {
+        if (selectedIdRef.current !== requestedId) return;
+        setCardStatus("ready");
+        setToast("Couldn't load, try again.");
+      });
   }
 
   async function handleSaved(place: BrowsePlace) {

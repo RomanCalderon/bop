@@ -69,8 +69,7 @@ export function PlaceDetail({
           .join(", ")
       : "";
   const mapsClassName = `${ring} mt-5 block rounded-full bg-[var(--ink)] px-4 py-3 text-center text-[var(--paper)] hover:opacity-90`;
-  const mapsPending =
-    cardStatus === "pending" || !hasCardFields(place) || !place.googleMapsUrl;
+  const mapsUrl = hasCardFields(place) ? place.googleMapsUrl : "";
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -161,16 +160,7 @@ export function PlaceDetail({
               <p className="mt-1 max-w-prose text-sm leading-relaxed">{place.notes}</p>
             </section>
           ) : null}
-          {hasCardFields(place) && !mapsPending ? (
-            <a
-              href={place.googleMapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={mapsClassName}
-            >
-              Open in Google Maps
-            </a>
-          ) : (
+          {cardStatus === "pending" ? (
             <button
               type="button"
               aria-busy="true"
@@ -180,7 +170,16 @@ export function PlaceDetail({
             >
               Open in Google Maps
             </button>
-          )}
+          ) : mapsUrl ? (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={mapsClassName}
+            >
+              Open in Google Maps
+            </a>
+          ) : null}
           <button
             type="button"
             aria-expanded={editing}
