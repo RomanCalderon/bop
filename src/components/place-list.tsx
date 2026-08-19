@@ -73,6 +73,8 @@ export function PlaceList({
               onClick={() => onOpen(place)}
             >
               {place.photoName ? (
+                // Session-gated /api/photos cannot use next/image (optimizer has no cookies).
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`/api/photos?name=${encodeURIComponent(place.photoName)}`}
                   alt=""
