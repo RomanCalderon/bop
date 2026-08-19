@@ -49,16 +49,33 @@ export async function addPlaceWithDeps(opts: {
   };
 }
 
+export async function searchPlacesWithDeps(
+  places: PlacesPort,
+  input: string,
+): Promise<
+  | { ok: true; suggestions: AutocompleteSuggestion[] }
+  | { ok: false; message: string }
+> {
+  const suggestions = await places.autocomplete(input);
+  if (suggestions.length === 0) {
+    return {
+      ok: false,
+      message: "Couldn't find that — try a more specific name.",
+    };
+  }
+  return { ok: true, suggestions };
+}
+
 export async function searchPlaces(input: string): Promise<
   | { ok: true; suggestions: AutocompleteSuggestion[] }
   | { ok: false; message: string }
 > {
   try {
     await requireAllowedSession();
-    const suggestions = await createPlacesClient(
-      process.env.GOOGLE_PLACES_SERVER_KEY ?? "",
-    ).autocomplete(input);
-    return { ok: true, suggestions };
+    return await searchPlacesWithDeps(
+      createPlacesClient(process.env.GOOGLE_PLACES_SERVER_KEY ?? ""),
+      input,
+    );
   } catch {
     return {
       ok: false,

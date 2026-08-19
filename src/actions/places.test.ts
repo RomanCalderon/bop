@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTestDb } from "@/test/pglite";
-import { addPlaceWithDeps } from "./places";
+import { addPlaceWithDeps, searchPlacesWithDeps } from "./places";
 import type { PlaceDetails, PlacesPort } from "@/lib/places-types";
 
 const details: PlaceDetails = {
@@ -23,6 +23,29 @@ const placesPort: PlacesPort = {
   getDetails: async () => details,
   fetchPhoto: async () => null,
 };
+
+describe("searchPlacesWithDeps", () => {
+  it("returns the find-that copy when Autocomplete is empty", async () => {
+    const result = await searchPlacesWithDeps(placesPort, "zzz");
+    expect(result).toEqual({
+      ok: false,
+      message: "Couldn't find that — try a more specific name.",
+    });
+  });
+
+  it("returns suggestions when Autocomplete has hits", async () => {
+    const suggestion = {
+      placeId: "ChIJ1",
+      primaryText: "Books",
+      secondaryText: "Austin, TX",
+    };
+    const result = await searchPlacesWithDeps(
+      { ...placesPort, autocomplete: async () => [suggestion] },
+      "books",
+    );
+    expect(result).toEqual({ ok: true, suggestions: [suggestion] });
+  });
+});
 
 describe("addPlaceWithDeps", () => {
   it("persists a row from mocked details", async () => {

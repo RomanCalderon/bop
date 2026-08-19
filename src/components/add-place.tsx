@@ -52,7 +52,10 @@ export function AddPlace({
             }
             const res = await searchPlaces(value);
             if (res.ok) setHits(res.suggestions);
-            else setError(res.message);
+            else {
+              setHits([]);
+              setError(res.message);
+            }
           }}
           placeholder="Search Google places"
           className="mt-3 w-full rounded-full border px-3 py-2"
